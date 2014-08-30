@@ -1,0 +1,18 @@
+{
+  "name": "mongo-stampede",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com> (https://github.com/zjonsson/)",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^2.3.2"
+  },
+  "devDependencies": {
+    "mocha": "^1.21.4",
+    "mongoskin": "^1.4.4"
+  }
+}

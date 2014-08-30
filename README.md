@@ -1,0 +1,17 @@
+# Mongo-stampede
+Most caching libraries do not place a variable into cache until its value has been resolved.  When multiple requests for the same key arrive at the same time, all of them will work on resolving the cached key (instead of only the first one) and then each of them will try to update the cache when resolved (i.e. [cache stampede](http://en.wikipedia.org/wiki/Cache_stampede)).   
+
+In `mongo-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
+
+### `require('mongo-stampede')(collection,[defaultOptions])`
+The stampede object should be initialized with a mongo collection object as the first argument and optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` (in ms).  They are applied as default options to any request that doesn't explicitly specify them.
+
+### `stampede.cached(key,fn,[options])`
+This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.
+
+### `stampede.get(key,[options],[retry])`
+Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).
+
+### `stampede.set(key,fn)`
+Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned.
+
