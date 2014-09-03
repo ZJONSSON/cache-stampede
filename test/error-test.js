@@ -1,8 +1,9 @@
 var mongo = require('mongoskin'),
+    assert = require('assert'),
     Promise = require('bluebird'),
     db = mongo.db("mongodb://localhost:27017/stampede_tests", {native_parser:true}),
     collection = db.collection('error-test'),
-    stampede = require('../index')(collection);
+    stampede = require('../index').mongo(collection);
 
 var count = 0;
 
@@ -30,31 +31,28 @@ describe('Function with error',function() {
             throw 'Should error';
           },
           function(err) {
-            if (err.message.indexOf('E11000') === -1) throw err;
-            return 'ok';
+            assert.equal(err.message,'KEY_EXISTS');
           });
       });
   });
 
   it('should return the correct error',function() {
-    return stampede.cached('testkey',delayError)
+    return stampede.cached('testkey2',delayError)
       .then(function(d) {
         throw 'Should have returned error';
       },function(e) {
-        if (e !== 'Error') throw 'Wrong Error';
-        return 'ok';
+        assert.equal(e,'Error');
       });
   });
 
   it('should have an empty cache after error is resolved',function() {
-    return stampede.get('testkey')
+    return stampede.get('testkey2')
       .then(
         function() {
           throw 'Should error';
         },
         function(e) {
-        if (e.message !== 'KEY_NOT_FOUND')
-          throw 'Expected error KEY_NOT_FOUND';
+          assert.equal(e.message,'KEY_NOT_FOUND');
         }
       );
   });

@@ -1,14 +1,15 @@
 var mongo = require('mongoskin'),
+    assert = require('assert'),
     Promise = require('bluebird'),
     db = mongo.db("mongodb://localhost:27017/stampede_tests", {native_parser:true}),
     collection = db.collection('delay-test'),
-    stampede = require('../index')(collection);
+    stampede = require('../index').mongo(collection);
 
 var count = 0;
 
 function delayFn() {
   count += 1;
-  return Promise.delay(500)
+  return Promise.delay(600)
     .then(function() {
       return 'Delay Results';
     });
@@ -23,34 +24,15 @@ describe('Clean collection',function() {
 describe('Delayed function',function() {
   it('setting should error when db is __caching__',function() {
     stampede.cached('testkey',delayFn);
-    return Promise.delay(11)
+    return Promise.delay(10)
       .then(function() {
         return stampede.set('testkey',function() { return 'New Value'; })
           .then(function() {
             throw 'Should have recevied an error';
           },
           function(err) {
-            if (err.message.indexOf('E11000') === -1) throw err;
-            return 'ok';
+            assert.equal(err.message,'KEY_EXISTS');
           });
-      });
-  });
-
-  it('re-running with zero delay should fail',function() {
-    return stampede.cached('testkey',delayFn,{retryDelay:0})
-      .then(function() {
-        throw 'Should error MAXIMUM_RETRIES';
-      },function(e) {
-        if (e.message !== 'MAXIMUM_RETRIES') throw e;
-      });
-  });
-
-  it('rerunning with only one retry should fail',function() {
-    return stampede.cached('testkey',delayFn,{maxRetries:1})
-      .then(function() {
-        throw 'Should error MAXIMUM_RETRIES';
-      },function(e) {
-        if (e.message !== 'MAXIMUM_RETRIES') throw e;
       });
   });
 
@@ -62,4 +44,25 @@ describe('Delayed function',function() {
         return 'OK';
       });
   });
+
+  it('re-running with zero delay should fail',function() {
+    stampede.cached('testkey2',delayFn);
+    return stampede.cached('testkey2',delayFn,{retryDelay:0})
+      .then(function(d) {
+        throw 'Should error MAXIMUM_RETRIES';
+      },function(e) {
+        if (e.message !== 'MAXIMUM_RETRIES') throw e;
+      });
+  });
+
+  it('rerunning with only one retry should fail',function() {
+    stampede.cached('testkey3',delayFn);
+    return stampede.cached('testkey3',delayFn,{maxRetries:1})
+      .then(function() {
+        throw 'Should error MAXIMUM_RETRIES';
+      },function(e) {
+        if (e.message !== 'MAXIMUM_RETRIES') throw e;
+      });
+  });
+
 });

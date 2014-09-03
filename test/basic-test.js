@@ -2,7 +2,7 @@ var mongo = require('mongoskin'),
     Promise = require('bluebird'),
     db = mongo.db("mongodb://localhost:27017/stampede_tests", {native_parser:true}),
     collection = db.collection('basic-test'),
-    stampede = require('../index')(collection);
+    stampede = require('../index').mongo(collection);
 
 var count = 0,delayCount = 0;
 
@@ -66,5 +66,5 @@ describe('Caching a value',function() {
       .then(function(d) {
         if (d.data !== 'VALUE') throw 'value not returned';
       });
-  })
+  });
 });
