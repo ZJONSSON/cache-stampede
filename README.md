@@ -1,10 +1,18 @@
-# Mongo-stampede
+# cache-stampede
 Most caching libraries do not place a variable into cache until its value has been resolved.  When multiple requests for the same key arrive at the same time, all of them will work on resolving the cached key (instead of only the first one) and then each of them will try to update the cache when resolved (i.e. [cache stampede](http://en.wikipedia.org/wiki/Cache_stampede)).   
 
-In `mongo-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
+In `cache-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
 
-### `require('mongo-stampede')(collection,[defaultOptions])`
-The stampede object should be initialized with a mongo collection object as the first argument and optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` (in ms).  They are applied as default options to any request that doesn't explicitly specify them.
+## Initialization
+Two basic database adapters are provided.
+* `require('cache-stampede').mongo(mongo_collection_object,[options])`
+* `require('cache-stampede').redis(redis_client,[options])`
+
+Optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` (in ms).  They are applied as default options to any request that doesn't explicitly specify them.
+
+The library can also be initialized with a custom adapter that provides `get`, `insert`, `update` and `remove` functions which return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.
+
+## Methods
 
 ### `stampede.cached(key,fn,[options])`
 This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.
