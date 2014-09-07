@@ -37,13 +37,13 @@ Stampede.prototype.get = function(key,options,retry) {
     });
 };
 
-Stampede.prototype.set = function(key,fn) {
+Stampede.prototype.set = function(key,fn,info) {
   var self = this;
-  return this.adapter.insert(key,{__caching__:true})
+  return this.adapter.insert(key,{__caching__: true, info: info})
     .then(function(d) {
       return Promise.fulfilled((typeof fn === 'function') ? fn() : fn)
         .then(function(d) {
-          return self.adapter.update(key,{data:d,__caching__:false})
+          return self.adapter.update(key,{data: d, __caching__: false, info: info})
             .then(function() {
               return d;
             });
@@ -57,7 +57,14 @@ Stampede.prototype.set = function(key,fn) {
     });
 };
 
-Stampede.prototype.cached = function(key,fn,options) {
+Stampede.prototype.info = function(key) {
+  return this.adapter.get(key)
+    .then(function(d) {
+      return d.info;
+    });
+}
+
+Stampede.prototype.cached = function(key,fn,options,info) {
   var self = this;
   return this.get(key,options,0)
     .then(function(d) {
@@ -65,11 +72,11 @@ Stampede.prototype.cached = function(key,fn,options) {
     },
     function(e) {
       if (e.message === 'KEY_NOT_FOUND') {
-        return self.set(key,fn)
+        return self.set(key,fn,info)
           .catch(function(err) {
             // If we experienced a race situation we try to get the results
             if (err && err.message && err.message.indexOf('KEY_EXISTS') !== -1)
-              return self.cached(key,fn,options);
+              return self.cached(key,fn,options,info);
             else
               throw err;
           });

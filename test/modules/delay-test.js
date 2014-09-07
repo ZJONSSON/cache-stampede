@@ -23,7 +23,7 @@ module.exports = function() {
   describe('Delayed function',function() {
     it('setting should error when db is __caching__',function() {
       var self = this;
-      this.cache.cached('delay-testkey',testFn);
+      this.cache.cached('delay-testkey',testFn,{},'TEST');
 
       return Promise.delay(10)
         .then(function() {
@@ -37,12 +37,26 @@ module.exports = function() {
         });
     });
 
+    it('return the request info while running',function() {
+      return this.cache.info('delay-testkey')
+        .then(function(d) {
+          assert.equal(d,'TEST');
+        });
+    });
+
     it('re-running should wait for cached results',function() {
       return this.cache.cached('delay-testkey',testFn,{maxRetries:6})
         .then(function(d) {
           if (d !== 'Delay Results') throw 'Wrong Error received from cache';
           if (count !== 1)  throw 'Delayed function run multiple times';
           return 'OK';
+        });
+    });
+
+    it('return the request info after running',function() {
+      return this.cache.info('delay-testkey')
+        .then(function(d) {
+          assert.equal(d,'TEST');
         });
     });
 
