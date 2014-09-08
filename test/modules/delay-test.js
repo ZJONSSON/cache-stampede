@@ -23,7 +23,7 @@ module.exports = function() {
   describe('Delayed function',function() {
     it('setting should error when db is __caching__',function() {
       var self = this;
-      this.cache.cached('delay-testkey',testFn,{},'TEST');
+      this.cache.cached('delay-testkey',testFn,{info:'TEST'});
 
       return Promise.delay(10)
         .then(function() {

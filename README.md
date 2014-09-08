@@ -14,15 +14,15 @@ The library can also be initialized with a custom adapter that provides `get`, `
 
 ## Methods
 
-### `stampede.cached(key,fn,[options],[request_info])`
-This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  The optional `request_info` is stored immediately if the key doesn't exist.
+### `stampede.cached(key,fn,[options])`
+This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.
 
 ### `stampede.get(key,[options],[retry])`
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).
 
-### `stampede.set(key,fn,[request_info])`
-Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned.  The optional `request_info` is stored immediately before the supplied function runs.
+### `stampede.set(key,fn,[options])`
+Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned. If an `info` property is defined in the options, it will be stored (and available) immediately.
 
 ### `stampede.info(key)`
-Returns the `request_info` for the supplied key if this key is either caching or finished running.
+Returns the `info` for the supplied key if this key is either caching or finished running.
 
