@@ -7,6 +7,7 @@ function Stampede(options) {
   options = options || {};
   this.retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : 100;
   this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
+  this.expiry = options.expiry;
   this.adapter = options.adapter || this.adapter;
   if (!this.adapter) throw 'Missing adapter';
 }
@@ -21,6 +22,11 @@ Stampede.prototype.get = function(key,options,retry) {
 
   return this.adapter.get(key)
     .then(function(d) {
+      if (d && d.expiryTime && new Date() > +d.expiryTime) {
+        d = undefined;
+        self.adapter.remove(key);
+      }
+
       if (!d) throw new Error('KEY_NOT_FOUND');
 
       if (d.__caching__) {
@@ -38,13 +44,25 @@ Stampede.prototype.get = function(key,options,retry) {
 };
 
 Stampede.prototype.set = function(key,fn,options) {
-  var self = this;
   options = options || {};
-  return this.adapter.insert(key,{__caching__: true, info: options.info})
+
+  var payload = {
+        info : options.info,
+        __caching__ : true,
+        updated : new Date(),
+      },
+      self = this;
+
+  var expiry = options.expiry || this.expiry;
+  if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
+
+  return this.adapter.insert(key,payload)
     .then(function(d) {
       return Promise.fulfilled((typeof fn === 'function') ? fn() : fn)
         .then(function(d) {
-          return self.adapter.update(key,{data: d, __caching__: false, info: options.info})
+          payload.__caching__ = false;
+          payload.data = d;
+          return self.adapter.update(key,payload)
             .then(function() {
               return d;
             });
