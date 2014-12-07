@@ -2,10 +2,8 @@ var assert = require('assert'),
     Promise = require('bluebird');
 
 module.exports = function() {
-  var count = 0;
 
   function testFn() {
-    count += 1;
     return Promise.delay(500)
       .then(function() {
         throw 'Error';
