@@ -39,6 +39,7 @@ Stampede.prototype.get = function(key,options,retry) {
           });
       }
 
+      if (d.error) throw d.data;
       return d;
     });
 };
@@ -58,19 +59,31 @@ Stampede.prototype.set = function(key,fn,options) {
 
   return this.adapter.insert(key,payload)
     .then(function(d) {
-      return Promise.fulfilled((typeof fn === 'function') ? fn() : fn)
+      return Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn)
+        .catch(function(e) {
+          // If the error is to be cached we transform into a JSON object
+          if (e && e.cache) {
+            var err = {error: true};
+            Object.getOwnPropertyNames(e)
+              .forEach(function(key) {
+                err[key] = e[key];
+              });
+            return err;
+          }
+          // Otherwise we remove the key and throw directly
+          else return self.adapter.remove(key)
+            .then(function() {
+              throw e;
+            });
+        })
         .then(function(d) {
           payload.__caching__ = false;
           payload.data = d;
+          if (d.error) payload.error = true;
           return self.adapter.update(key,payload)
             .then(function() {
-              return d;
-            });
-        })
-        .catch(function(err) {
-          return self.adapter.remove(key)
-            .then(function() {
-              throw err;
+              if (d.error) throw d;
+              else return d;
             });
         });
     });
