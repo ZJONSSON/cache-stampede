@@ -79,10 +79,10 @@ Stampede.prototype.set = function(key,fn,options) {
         .then(function(d) {
           payload.__caching__ = false;
           payload.data = d;
-          if (d.error) payload.error = true;
+          if (d && d.error) payload.error = true;
           return self.adapter.update(key,payload)
             .then(function() {
-              if (d.error) throw d;
+              if (payload.error) throw d;
               else return d;
             });
         });
