@@ -57,7 +57,7 @@ Stampede.prototype.set = function(key,fn,options) {
   var expiry = options.expiry || this.expiry;
   if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
-  return this.adapter.insert(key,payload)
+  return (options.upsert ? this.adapter.update(key,payload) : this.adapter.insert(key,payload))
     .then(function(d) {
       return Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn)
         .catch(function(e) {

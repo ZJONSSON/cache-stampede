@@ -21,7 +21,7 @@ This function either returns a cached value for the supplied key or attempts to 
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).  If `expiry` was defined when the key was defined and it has expired, the key will be deleted and `KEY_NOT_FOUND` error thrown.
 
 ### `stampede.set(key,fn,[options])`
-Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned. If an `info` property is defined in the options, it will be stored (and available) immediately.
+Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned. If an `info` property is defined in the options, it will be stored (and available) immediately. If option upsert is true this function will overwrite any current value.
 
 ### `stampede.info(key)`
 Returns the `info` for the supplied key if this key is either caching or finished running.
