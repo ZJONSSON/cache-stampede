@@ -17,9 +17,17 @@ function RedisStampede(collection,options) {
 }
 util.inherits(RedisStampede,Stampede);
 
+function FileStampede(directory,options) {
+  if (!(this instanceof FileStampede))
+    return new FileStampede(directory,options);
+  this.adapter = require('./adapters/file')(directory);
+  Stampede.call(this,options);
+}
+util.inherits(FileStampede,Stampede);
 
 
 
 module.exports = Stampede;
 module.exports.mongo = MongoStampede;
 module.exports.redis = RedisStampede;
+module.exports.file = FileStampede;

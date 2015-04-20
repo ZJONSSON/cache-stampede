@@ -19,7 +19,9 @@ var caches = {
   redis : stampede.redis(
     require('redis')
       .createClient()
-  )
+  ),
+
+  file : stampede.file(path.join(__dirname,'filecache'))
 };
 
 // Go through all caches and run tests
