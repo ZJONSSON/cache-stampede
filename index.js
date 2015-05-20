@@ -3,7 +3,7 @@ var Stampede = require('./stampede'),
 
 module.exports = Stampede;
 
-['file','mongo','redis'].forEach(function(key) {
+['file','mongo','mongoose','redis'].forEach(function(key) {
   var Adapter = function(collection,options) {
     if (!(this instanceof Adapter))
       return new Adapter(collection,options);

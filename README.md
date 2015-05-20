@@ -4,12 +4,13 @@ Most caching libraries do not place a variable into cache until its value has be
 In `cache-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
 
 ## Initialization
-Three basic database adapters are provided.
+Four basic database adapters are provided.
 * `require('cache-stampede').mongo(mongo_collection_object,[options])`
+* `require('cache-stampede').mongoose(collection_name,[options])`
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-Optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.
+Optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.  The mongoose adapter will accept the particular `mongoose` object to be used as a property in options.  
 
 The library can also be initialized with a custom adapter that provides `get`, `insert`, `update` and `remove` functions which return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.
 

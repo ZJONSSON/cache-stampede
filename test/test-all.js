@@ -1,6 +1,9 @@
 var fs = require('fs'),
     path = require('path'),
-    stampede = require('../index');
+    stampede = require('../index'),
+    mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost:27017/stampede_tests');
 
 // Require in all tests in the modules directory
 var tests = fs.readdirSync(path.join(__dirname,'modules'))
@@ -15,6 +18,8 @@ var caches = {
       .db("mongodb://localhost:27017/stampede_tests", {native_parser:true})
       .collection('stampede_tests')
   ),
+
+  mongoose : stampede.mongoose('stampede_tests',{mongoose:mongoose}),
 
   redis : stampede.redis(
     require('redis')
