@@ -1,6 +1,6 @@
 {
   "name": "cache-stampede",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
@@ -9,11 +9,12 @@
   "author": "Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com> (https://github.com/zjonsson/)",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^2.3.2",
-    "mongoskin": "^1.4.4",
-    "redis": "^0.12.1"
+    "bluebird": "^2.9.25"
   },
   "devDependencies": {
-    "mocha": "^1.21.4"
+    "mocha": "^1.21.4",
+    "mongoose": "^4.0.3",
+    "mongoskin": "^1.4.4",
+    "redis": "^0.12.1"
   }
 }

@@ -12,6 +12,8 @@ Four basic database adapters are provided.
 
 Optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.  The mongoose adapter will accept the particular `mongoose` object to be used as a property in options.  
 
+Please note: The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.
+
 The library can also be initialized with a custom adapter that provides `get`, `insert`, `update` and `remove` functions which return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.
 
 The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.
