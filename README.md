@@ -21,7 +21,7 @@ The file adapter maintains a list of files (named by the respective keys) the sp
 ## Methods
 
 ### `stampede.cached(key,fn,[options])`
-This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.
+This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.
 
 ### `stampede.get(key,[options],[retry])`
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).  If `expiry` was defined when the key was defined and it has expired, the key will be deleted and `KEY_NOT_FOUND` error thrown.

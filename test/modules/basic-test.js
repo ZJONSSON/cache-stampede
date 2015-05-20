@@ -40,6 +40,13 @@ module.exports = function() {
             if (count != 1) throw 'Function called instead of cached results';
           });
       });
+      it('should return cached result when executed standalone',function() {
+        var cached = this.cache.cached;
+        return cached('testKey',function() { throw 'SHOULD_NOT_RUN'})
+          .then(function(d) {
+            if (d !== 'Results') throw 'Wrong Value received';
+          });
+      });
     });
 
     describe('Caching a value',function() {

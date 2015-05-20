@@ -9,6 +9,8 @@ function Stampede(options) {
   this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
   this.expiry = options.expiry;
   this.adapter = options.adapter || this.adapter;
+  // Bind the cached function to make it passable directly to consumers of the cache
+  this.cached = this.cached.bind(this);
   if (!this.adapter) throw 'Missing adapter';
 }
 
@@ -98,7 +100,7 @@ Stampede.prototype.info = function(key) {
 
 Stampede.prototype.cached = function(key,fn,options) {
   var self = this;
-  return this.get(key,options,0)
+   return this.get(key,options,0)
     .then(function(d) {
       return d.data;
     },
