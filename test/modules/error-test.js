@@ -1,6 +1,11 @@
 var assert = require('assert'),
     Promise = require('bluebird');
 
+function shouldNotRun() { throw 'Should not run';}
+function shouldError() { throw 'Should have errored';}
+function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
+function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
+
 module.exports = function() {
 
   function testFn() {
@@ -17,41 +22,25 @@ module.exports = function() {
     ]);
   });
 
-  describe('Function with error',function() {
-    it('setting should error when db is __caching__',function() {
-      var cache = this.cache;
-      cache.cached('error-testkey',testFn).catch(function() {});
+  describe('Function with non-caching error',function() {
+    it('`set` should fail when db is still __caching__',function() {
+      var self = this;
+      self.cache.cached('error-testkey',testFn).catch(Object);
       return Promise.delay(11)
         .then(function() {
-          return cache.set('error-testkey',function() { return 'New Value'; })
-            .then(function() {
-              throw 'Should error';
-            },
-            function(err) {
-              assert.equal(err.message,'KEY_EXISTS');
-            });
+          return self.cache.set('error-testkey',function() { return 'New Value'; })
+            .then(shouldError,errorMsg('KEY_EXISTS'));
         });
     });
 
-    it('should return the correct error',function() {
+    it('`cached` should return the correct error',function() {
       return this.cache.cached('error-testkey2',testFn)
-        .then(function(d) {
-          throw 'Should have returned error';
-        },function(e) {
-          assert.equal(e,'Error');
-        });
+        .then(shouldError,errorMsg('Error'));
     });
 
-    it('should have an empty cache after error is resolved',function() {
+    it('`get` should show that error was not cached',function() {
       return this.cache.get('error-testkey2')
-        .then(
-          function() {
-            throw 'Should error';
-          },
-          function(e) {
-            assert.equal(e.message,'KEY_NOT_FOUND');
-          }
-        );
+        .then(shouldError,errorMsg('KEY_NOT_FOUND'));
     });
   });
 };

@@ -1,57 +1,65 @@
 var Promise = require('bluebird'),
     assert = require('assert');
 
-module.exports = function() {
-  var count = 0;
+function shouldNotRun() { throw 'Should not run';}
+function shouldError() { throw 'Should have errored';}
+function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
+function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
+module.exports = function() {
+  var result = 'This is the result of the expiry test';
+  
   function testFn() {
-    count += 1;
-    return 'Results';
+    return result;
   }
 
   before(function() {
     return this.cache.adapter.remove('expiry-test');
   });
 
-  describe('Expiry test',function() {
-    describe('Getting a non-cached function',function() {
-      it('should return an error',function() {
+  describe('With defined expiry',function() {
+    describe('on empty cache',function() {
+      it('`get` should error',function() {
         return this.cache.get('expiry-test')
-          .then(function() {
-            throw 'Should not have received value';
-          },function(e) {
-            assert.equal(e.message,'KEY_NOT_FOUND');
+          .then(shouldError,errorMsg('KEY_NOT_FOUND'));
+      });
+
+      it('`cached` should return function output',function() {
+        return this.cache.cached('expiry-test',testFn,{expiry:200})
+          .then(shouldEqual(result));
+      });
+    });
+
+    describe('after first `cached`, ',function() {
+      it('second `cached` should return from cache',function() {
+        return this.cache.cached('expiry-test',shouldNotRun,{expiry:200})
+          .then(shouldEqual(result));
+      });
+      it('`get` should return from cache',function() {
+        return this.cache.get('expiry-test',shouldNotRun,{expiry:200})
+          .then(function(d) {
+            assert.equal(d.data,result);
           });
       });
     });
 
-    describe('Executing cache on a function',function() {
-      it('on empty cache should return function output',function() {
-        return this.cache.cached('expiry-test',testFn,{expiry:200})
-          .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-          });
-      });
-
-      it('on caching - should return cached result',function() {
-        return this.cache.cached('expiry-test',testFn,{expiry:200})
-          .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-            if (count != 1) throw 'Function called instead of cached results';
-          });
-      });
-
-      it('after expiry',function() {
+    describe('after cache expired',function() {
+      it('`cached` should re-run function',function() {
         var self = this;
         return Promise.delay(200)
           .then(function() {
-            return self.cache.cached('expiry-test',testFn,{expiry:200});
+            return self.cache.cached('expiry-test',function() { return 'UPDATED_VALUE';},{expiry:200});
           })
+          .then(shouldEqual('UPDATED_VALUE'));
+      });
+
+      it('and `get` return updated value',function() {
+        return this.cache.get('expiry-test')
           .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-            if (count != 2) throw 'Function not called after expiry of cache key';
+            assert.equal(d.data,'UPDATED_VALUE');
           });
       });
+      
     });
   });
 };

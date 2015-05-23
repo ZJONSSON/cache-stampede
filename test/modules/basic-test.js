@@ -1,12 +1,14 @@
-var Promise = require('bluebird'),
-    assert = require('assert');
+var assert = require('assert');
+
+function shouldError() { throw 'Should have errored';}
+function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
+function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
 module.exports = function() {
-  var count = 0;
+  var result = 'This is the result of the basic test';
 
   function testFn() {
-    count += 1;
-    return 'Results';
+    return result;
   }
 
   before(function() {
@@ -14,53 +16,43 @@ module.exports = function() {
   });
 
   describe('Basic test',function() {
-    describe('Getting a non-cached function',function() {
-      it('should return an error',function() {
+    describe('on empty cache',function() {
+      it('`get` should error',function() {
         return this.cache.get('testkey')
-          .then(function() {
-            throw 'Should not have received value';
-          },function(e) {
-            assert.equal(e.message,'KEY_NOT_FOUND');
+          .then(shouldError,errorMsg('KEY_NOT_FOUND'));
+      });
+
+      it('`cached` should return function output',function() {
+        return this.cache.cached('testkey',testFn)
+          .then(shouldEqual(result));
+      });
+    });
+
+    describe('after first `cached`',function() {
+      it('second `cached` should load from cache',function() {
+        return this.cache.cached('testkey',function() { throw 'Should not run fn';})
+          .then(shouldEqual(result));
+      });
+
+      it('`get` should load from cache',function() {
+        return this.cache.get('testkey')
+          .then(function(d) {
+            assert.equal(d.data,result);
           });
       });
     });
 
-    describe('Executing cache on a function',function() {
-      it('on empty cache should return function output',function() {
-        return this.cache.cached('testkey',testFn)
-          .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-          });
-      });
-
-      it('on caching - should return cached result',function() {
-        return this.cache.cached('testkey',testFn)
-          .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-            if (count != 1) throw 'Function called instead of cached results';
-          });
-      });
-      it('should return cached result when executed standalone',function() {
-        var cached = this.cache.cached;
-        return cached('testkey',function() { throw 'SHOULD_NOT_RUN';})
-          .then(function(d) {
-            if (d !== 'Results') throw 'Wrong Value received';
-          });
-      });
-    });
 
     describe('Caching a value',function() {
-      it('returns the value',function() {
+      it('`cached` returns the value',function() {
         return this.cache.cached('value','VALUE')
-          .then(function(d) {
-            if (d !== 'VALUE') throw 'value not returned';
-          });
+          .then(shouldEqual('VALUE'));
       });
 
-      it('gets it from the cache',function() {
+      it('`get` returns the value',function() {
         return this.cache.get('value')
           .then(function(d) {
-            if (d.data !== 'VALUE') throw 'value not returned';
+            assert.equal(d.data,'VALUE');
           });
       });
     });
