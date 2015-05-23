@@ -75,6 +75,7 @@ Stampede.prototype.set = function(key,fn,options) {
     .then(function(d) {
       return Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn)
         .catch(function(e) {
+          if (typeof e === 'string') e = {message:e};
           // If the error is to be cached we transform into a JSON object
           if (e && e.cache) {
             var err = {error: true};
