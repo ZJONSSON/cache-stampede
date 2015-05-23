@@ -10,25 +10,33 @@ Four basic database adapters are provided.
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-Optional options as the second arguments.   Cache control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.  The mongoose adapter will accept the particular `mongoose` object to be used as a property in options.  Finally you can (optional) specify `passphrase` and `algo` (defaults to `aes192`) to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase with have the property `encrypted` equal to `true`.
+The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers
 
-Please note: The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.
-
-The library can also be initialized with a custom adapter that provides `get`, `insert`, `update` and `remove` functions which return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.
-
-The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.
+This library can be initialized with a custom adapter.  A custom adapter needs to provide `get`, `insert`, `update` and `remove` functions which should return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.  Please note:  
 
 ## Methods
 
-### `stampede.cached(key,fn,[options])`
+#### `stampede.cached(key,fn,[options])`
 This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.
 
-### `stampede.get(key,[options],[retry])`
+#### `stampede.get(key,[options],[retry])`
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).  If `expiry` was defined when the key was defined and it has expired, the key will be deleted and `KEY_NOT_FOUND` error thrown.
 
-### `stampede.set(key,fn,[options])`
+#### `stampede.set(key,fn,[options])`
 Set the supplied key as the result of the supplied function and return a promise.  The function can either return a value or a promise.  If `fn` is not a function, the cache will be set to the value of this argument.  If the key already exists in the cache, the promise will return a `E11000` error, otherwise the resolved value will be returned. If an `info` property is defined in the options, it will be stored (and available) immediately. If option upsert is true this function will overwrite any current value.
 
-### `stampede.info(key)`
+#### `stampede.info(key)`
 Returns the `info` for the supplied key if this key is either caching or finished running.
+
+
+## Additional controls
+
+#### Retry and expiry
+Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them. 
+
+#### Encyption
+You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.
+
+#### Where do errors go?
+The default behaviour is to **not** cache errors. However, if any error object has a property `cache` set to `true`, then `cache-stampede` will save that error to cache and return it as rejected promise when it's requested again.  This can be very handy when you know an error represent an irrevocable state for a particular key.
 
