@@ -10,7 +10,7 @@ Four basic database adapters are provided.
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-Optional options as the second arguments.   The available options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.  The mongoose adapter will accept the particular `mongoose` object to be used as a property in options.  
+Optional options as the second arguments.   Cache control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them.  The mongoose adapter will accept the particular `mongoose` object to be used as a property in options.  Finally you can (optional) specify `passphrase` and `algo` (defaults to `aes192`) to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase with have the property `encrypted` equal to `true`.
 
 Please note: The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.
 

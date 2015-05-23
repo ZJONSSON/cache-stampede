@@ -1,13 +1,16 @@
-var Promise = require('bluebird');
+var Promise = require('bluebird'),
+    crypto = require('crypto');
+
 
 function Stampede(options) {
   if (!(this instanceof Stampede))
     return new Stampede(options);
-
-  options = options || {};
+  options = this.options = options || {};
   this.retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : 100;
   this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
   this.expiry = options.expiry;
+  this.passphrase = options.passphrase;
+  this.algo = options.algo || 'aes192';
   this.adapter = options.adapter || this.adapter;
   // Bind the cached function to make it passable directly to consumers of the cache
   this.cached = this.cached.bind(this);
@@ -24,12 +27,14 @@ Stampede.prototype.get = function(key,options,retry) {
 
   return this.adapter.get(key)
     .then(function(d) {
+      function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
+
       if (d && d.expiryTime && new Date() > +d.expiryTime) {
         d = undefined;
-        self.adapter.remove(key);
+        return self.adapter.remove(key).then(keyNotFound);
       }
 
-      if (!d) throw new Error('KEY_NOT_FOUND');
+      if (!d) keyNotFound();
 
       if (d.__caching__) {
         if (retry++ > maxRetries)
@@ -41,8 +46,15 @@ Stampede.prototype.get = function(key,options,retry) {
           });
       }
 
-      if (d.error) throw d.data;
       return d;
+    })
+    .then(function(d) {
+      if (d.encrypted) {   
+        d.data = self.decrypt(d.data);
+        d.encrypted = false;
+      }
+      if (d.error) throw d.data;
+      else return d;
     });
 };
 
@@ -79,8 +91,13 @@ Stampede.prototype.set = function(key,fn,options) {
             });
         })
         .then(function(d) {
+          if (self.passphrase) {
+            payload.encrypted = true;
+            payload.data = self.encrypt(d);
+          } else {
+            payload.data = d;
+          }
           payload.__caching__ = false;
-          payload.data = d;
           if (d && d.error) payload.error = true;
           return self.adapter.update(key,payload)
             .then(function() {
@@ -116,6 +133,25 @@ Stampede.prototype.cached = function(key,fn,options) {
           });
       } else throw e;
     });
+};
+
+Stampede.prototype.encrypt = function(data) {
+  if (!this.passphrase) throw 'MISSING_PASSPHRASE';
+  var cipher = crypto.createCipher(this.algo ,this.passphrase);
+  return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
+};
+
+Stampede.prototype.decrypt = function(data) {
+  if (!this.passphrase) throw 'MISSING_PASSPHRASE';
+  var decipher = crypto.createDecipher(this.algo,this.passphrase);
+  try {
+    return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
+  } catch(e) {
+    if (e.message.indexOf('error:06065064') === 0)
+      throw new Error('BAD_PASSPHRASE');
+    else
+      throw e;  
+  }
 };
 
 module.exports = Stampede;
