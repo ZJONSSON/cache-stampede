@@ -35,7 +35,7 @@ Returns the `info` for the supplied key if this key is either caching or finishe
 Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them. 
 
 #### Encyption
-You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.
+You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.  You can also specify a record-specific `passphrase` in the options of each `cached`, `get` and `set` command.
 
 #### Where do errors go?
 The default behaviour is to **not** cache errors. However, if any error object has a property `cache` set to `true`, then `cache-stampede` will save that error to cache and return it as rejected promise when it's requested again.  This can be very handy when you know an error represent an irrevocable state for a particular key.

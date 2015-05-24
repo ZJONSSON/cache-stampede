@@ -49,8 +49,9 @@ Stampede.prototype.get = function(key,options,retry) {
       return d;
     })
     .then(function(d) {
-      if (d.encrypted) {   
-        d.data = self.decrypt(d.data);
+      if (d.encrypted) { 
+        var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;  
+        d.data = self.decrypt(d.data,passphrase);
         d.encrypted = false;
       }
       if (d.error) throw d.data;
@@ -92,9 +93,10 @@ Stampede.prototype.set = function(key,fn,options) {
             });
         })
         .then(function(d) {
-          if (self.passphrase) {
+          var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
+          if (passphrase) {
             payload.encrypted = true;
-            payload.data = self.encrypt(d);
+            payload.data = self.encrypt(d,passphrase);
           } else {
             payload.data = d;
           }
@@ -136,15 +138,15 @@ Stampede.prototype.cached = function(key,fn,options) {
     });
 };
 
-Stampede.prototype.encrypt = function(data) {
-  if (!this.passphrase) throw 'MISSING_PASSPHRASE';
-  var cipher = crypto.createCipher(this.algo ,this.passphrase);
+Stampede.prototype.encrypt = function(data,passphrase) {
+  if (!passphrase) throw 'MISSING_PASSPHRASE';
+  var cipher = crypto.createCipher(this.algo ,passphrase);
   return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
 };
 
-Stampede.prototype.decrypt = function(data) {
-  if (!this.passphrase) throw 'MISSING_PASSPHRASE';
-  var decipher = crypto.createDecipher(this.algo,this.passphrase);
+Stampede.prototype.decrypt = function(data,passphrase) {
+  if (!passphrase) throw 'MISSING_PASSPHRASE';
+  var decipher = crypto.createDecipher(this.algo,passphrase);
   try {
     return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
   } catch(e) {
