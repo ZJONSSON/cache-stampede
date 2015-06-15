@@ -10,7 +10,7 @@ Four basic database adapters are provided.
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers
+The relevant database libraries (mongo, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` adapter allows you to specify the collection as a promise to deliver a collection object (optional).
 
 This library can be initialized with a custom adapter.  A custom adapter needs to provide `get`, `insert`, `update` and `remove` functions which should return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.  Please note:  
 

@@ -1,7 +1,11 @@
 var fs = require('fs'),
     path = require('path'),
     stampede = require('../index'),
+    mongodb = require('mongodb'),
+    Promise = require('bluebird'),
     mongoose = require('mongoose');
+
+Promise.promisifyAll(mongodb.MongoClient);
 
 mongoose.connect('mongodb://localhost:27017/stampede_tests');
 
@@ -14,9 +18,10 @@ var tests = fs.readdirSync(path.join(__dirname,'modules'))
 // Define caches for each adaptor
 var caches = {
   mongo : stampede.mongo(
-    require('mongoskin')
-      .db("mongodb://localhost:27017/stampede_tests", {native_parser:true})
-      .collection('stampede_tests')
+    mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
+      .then(function(db) {
+        return db.collection('stampede_tests');
+      })
   ),
 
   mongoose : stampede.mongoose('stampede_tests',{mongoose:mongoose}),
