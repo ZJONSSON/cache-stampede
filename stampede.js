@@ -18,14 +18,20 @@ function Stampede(options) {
 }
 
 Stampede.prototype.get = function(key,options,retry) {
-  var self = this;
+  var self = this,
+      value;
+
   retry = retry || 0;
   options = options || {};
 
   var maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries,
       retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
 
-  return this.adapter.get(key)
+  // If we already have the value pre-cached we use it
+  if (options.preCache && options.preCache[key] !== undefined)
+    value = Promise.resolve(options.preCache[key]);
+
+  return ( value  || this.adapter.get(key))
     .then(function(d) {
       function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
 

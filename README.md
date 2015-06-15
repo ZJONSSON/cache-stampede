@@ -37,6 +37,9 @@ Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms
 #### Encyption
 You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.  You can also specify a record-specific `passphrase` in the options of each `cached`, `get` and `set` command.
 
+#### preCache
+When processing bulk-data it is often conventient to load data in bulk from cache as well.  By defining an object `perCache` in options you can supply any known information to avoid repeat calls to the db.  If a any requested key is found in `preCache` it is simply returned, otherwise the regular caching mechanism applies.   The objects in `preCache` need to adhere to the `cache-stampede` storage specification, i.e. the data should be under property `data`.
+
 #### Where do errors go?
 The default behaviour is to **not** cache errors. However, if any error object has a property `cache` set to `true`, then `cache-stampede` will save that error to cache and return it as rejected promise when it's requested again.  This can be very handy when you know an error represent an irrevocable state for a particular key.
 

@@ -56,5 +56,14 @@ module.exports = function() {
           });
       });
     });
+
+    describe('Getting from pre-cached',function() {
+      it('returns available value',function() {
+        return this.cache.cached('prekey1',function() { throw 'Should not run';},{preCache:{prekey1:{data:42}}})
+          .then(function(d) {
+            assert.equal(d,42);
+          });
+      });
+    });
   });
 };
