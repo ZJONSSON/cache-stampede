@@ -17,7 +17,7 @@ module.exports = function(collection) {
     insert : function(key,d) {
       d._id = key;
       return collection.then(function(c) {
-        return c.insertAsync(d)
+        return c.insertAsync(d,{w: 1})
           .catch(function(err) {
             if (err && err.message && err.message.indexOf('E11000') !== -1)
               throw new Error('KEY_EXISTS');
