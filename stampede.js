@@ -144,6 +144,25 @@ Stampede.prototype.cached = function(key,fn,options) {
     });
 };
 
+Stampede.prototype.solve = function(key,fn,options) {
+  var self = this;
+  return this.get(key,options,0)
+    .then(function(d) {
+      return d.data;
+    },
+    function(e) {
+      if (e.message === 'KEY_NOT_FOUND') {
+        var defer = Promise.defer();
+        self.set(key,defer.promise,{upsert:true});
+        return [fn,function(d) {
+          defer.resolve(d);
+          return d;
+        }];
+      }
+      else throw e;
+    });
+};
+
 Stampede.prototype.encrypt = function(data,passphrase) {
   if (!passphrase) throw 'MISSING_PASSPHRASE';
   var cipher = crypto.createCipher(this.algo ,passphrase);
