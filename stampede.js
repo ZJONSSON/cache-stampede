@@ -175,7 +175,7 @@ Stampede.prototype.decrypt = function(data,passphrase) {
   try {
     return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
   } catch(e) {
-    if (e.message.indexOf('error:06065064') === 0)
+    if (e.message.indexOf('error:06065064') === 0 || e.message.indexOf('error:00000000:lib(0):func(0):reason(0)') === 0)
       throw new Error('BAD_PASSPHRASE');
     else
       throw e;  
