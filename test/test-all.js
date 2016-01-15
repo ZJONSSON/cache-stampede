@@ -24,6 +24,13 @@ var caches = {
       })
   ),
 
+  mongodb : stampede.mongodb(
+     mongodb.MongoClient.connect('mongodb://localhost:27017/stampede_tests', {native_parser:true})
+      .then(function(db) {
+        return db.collection('stampede_tests');
+      })
+  ),
+
   mongoose : stampede.mongoose('stampede_tests',{mongoose:mongoose}),
 
   redis : stampede.redis(
