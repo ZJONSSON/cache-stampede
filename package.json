@@ -1,6 +1,6 @@
 {
   "name": "cache-stampede",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "bluebird": "^2.9.25"
   },
   "devDependencies": {
-    "mongodb": "^2.0.33",
+    "mongodb": "^2.1.4",
     "mocha": "^1.21.4",
     "mongoose": "^4.0.3",
     "redis": "^0.12.1"
