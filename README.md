@@ -41,6 +41,9 @@ You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when y
 #### preCache
 When processing bulk-data it is often conventient to load data in bulk from cache as well.  By defining an object `perCache` in options you can supply any known information to avoid repeat calls to the db.  If a any requested key is found in `preCache` it is simply returned, otherwise the regular caching mechanism applies.   The objects in `preCache` need to adhere to the `cache-stampede` storage specification, i.e. the data should be under property `data`.
 
+#### clues resolution
+If you specify `clues: true` in options of either `.cached` or `.set` method,  the function supplied function will be returned to be resolved by [clues](https://github.com/ZJONSSON/clues) in the same `this` context as there the method was called.  It is important to `return` the cache-method so that the resolution machine can evaluate the formula that gets returned (see test/clues-test.js).  Failure to do so will result in an orphan record that will remain in `__caching__` state.
+
 #### Where do errors go?
 The default behaviour is to **not** cache errors. However, if any error object has a property `cache` set to `true`, then `cache-stampede` will save that error to cache and return it as rejected promise when it's requested again.  This can be very handy when you know an error represent an irrevocable state for a particular key.
 
