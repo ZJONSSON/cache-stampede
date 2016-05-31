@@ -80,40 +80,53 @@ Stampede.prototype.set = function(key,fn,options) {
 
   return (options.upsert ? this.adapter.update(key,payload) : this.adapter.insert(key,payload))
     .then(function(d) {
-      return Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn)
-        .catch(function(e) {
-          if (typeof e === 'string') e = {message:e};
-          // If the error is to be cached we transform into a JSON object
-          if (e && e.cache) {
-            var err = {error: true};
-            Object.getOwnPropertyNames(e)
-              .forEach(function(key) {
-                err[key] = e[key];
+
+      function finalize(d) {
+        return Promise.resolve(d)
+         .catch(function(e) {
+            if (typeof e === 'string') e = {message:e};
+            // If the error is to be cached we transform into a JSON object
+            if (e && e.cache) {
+              var err = {error: true};
+              Object.getOwnPropertyNames(e)
+                .forEach(function(key) {
+                  err[key] = e[key];
+                });
+              return err;
+            }
+            // Otherwise we remove the key and throw directly
+            else return self.adapter.remove(key)
+              .then(function() {
+                throw e;
               });
-            return err;
-          }
-          // Otherwise we remove the key and throw directly
-          else return self.adapter.remove(key)
-            .then(function() {
-              throw e;
-            });
-        })
-        .then(function(d) {
-          var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-          if (passphrase) {
-            payload.encrypted = true;
-            payload.data = self.encrypt(d,passphrase);
-          } else {
-            payload.data = d;
-          }
-          payload.__caching__ = false;
-          if (d && d.error) payload.error = true;
-          return self.adapter.update(key,payload)
-            .then(function() {
-              if (payload.error) throw d;
-              else return d;
-            });
-        });
+          })
+          .then(function(d) {
+            var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
+            if (passphrase) {
+              payload.encrypted = true;
+              payload.data = self.encrypt(d,passphrase);
+            } else {
+              payload.data = d;
+            }
+            payload.__caching__ = false;
+            if (d && d.error) payload.error = true;
+            return self.adapter.update(key,payload)
+              .then(function() {
+                if (payload.error) throw d;
+                else return d;
+              });
+          });
+      }
+  
+      if (options.clues) {
+        return [ function $noThrow(_) { return fn; }, function(value) {
+          if (value.error)
+            value = Promise.reject(value);
+          return finalize(value);
+        }];
+      } else {
+        return finalize(Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn));
+      }
     });
 };
 
@@ -144,25 +157,6 @@ Stampede.prototype.cached = function(key,fn,options) {
     });
 };
 
-Stampede.prototype.solve = function(key,fn,options) {
-  var self = this;
-  return this.get(key,options,0)
-    .then(function(d) {
-      return d.data;
-    },
-    function(e) {
-      if (e.message === 'KEY_NOT_FOUND') {
-        var defer = Promise.defer();
-        self.set(key,defer.promise,{upsert:true});
-        return [fn,function(d) {
-          defer.resolve(d);
-          return d;
-        }];
-      }
-      else throw e;
-    });
-};
-
 Stampede.prototype.encrypt = function(data,passphrase) {
   if (!passphrase) throw 'MISSING_PASSPHRASE';
   var cipher = crypto.createCipher(this.algo ,passphrase);
@@ -175,7 +169,7 @@ Stampede.prototype.decrypt = function(data,passphrase) {
   try {
     return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
   } catch(e) {
-    if (e instanceof TypeError)
+    if (e instanceof TypeError || (e.message && e.message.indexOf('bad decrypt') !== -1))
       throw new Error('BAD_PASSPHRASE');
     else
       throw e;  
