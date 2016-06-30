@@ -55,8 +55,8 @@ Stampede.prototype.get = function(key,options,retry) {
       return d;
     })
     .then(function(d) {
-      if (d.encrypted) { 
-        var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;  
+      if (d.encrypted) {
+        var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
         d.data = self.decrypt(d.data,passphrase);
         d.encrypted = false;
       }
@@ -78,7 +78,7 @@ Stampede.prototype.set = function(key,fn,options) {
   var expiry = options.expiry || this.expiry;
   if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
-  return (options.upsert ? this.adapter.update(key,payload) : this.adapter.insert(key,payload))
+  return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
     .then(function(d) {
 
       function finalize(d) {
@@ -110,14 +110,14 @@ Stampede.prototype.set = function(key,fn,options) {
             }
             payload.__caching__ = false;
             if (d && d.error) payload.error = true;
-            return self.adapter.update(key,payload)
+            return self.adapter.update(key,payload,expiry)
               .then(function() {
                 if (payload.error) throw d;
                 else return d;
               });
           });
       }
-  
+
       if (options.clues) {
         return [ function $noThrow(_) { return fn; }, function(value) {
           if (value.error)
@@ -172,7 +172,7 @@ Stampede.prototype.decrypt = function(data,passphrase) {
     if (e instanceof TypeError || (e.message && e.message.indexOf('bad decrypt') !== -1))
       throw new Error('BAD_PASSPHRASE');
     else
-      throw e;  
+      throw e;
   }
 };
 
