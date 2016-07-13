@@ -148,7 +148,7 @@ Stampede.prototype.cached = function(key,fn,options) {
         return self.set(key,fn,options)
           .catch(function(err) {
             // If we experienced a race situation we try to get the results
-            if (err && err.message && err.message.indexOf('KEY_EXISTS') !== -1)
+            if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
               return self.cached(key,fn,options);
             else
               throw err;
