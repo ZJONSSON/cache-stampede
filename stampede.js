@@ -34,13 +34,19 @@ Stampede.prototype.get = function(key,options,retry) {
   return ( value  || this.adapter.get(key))
     .then(function(d) {
       function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
+      if (!d) keyNotFound();
 
-      if (d && d.expiryTime && new Date() > +d.expiryTime) {
+      var updated = +(new Date(d.updated)),
+          now = new Date();
+
+      var expired = d.expiryTime && (now > +d.expiryTime),
+          aged = (!isNaN(options.maxAge) && (updated + options.maxAge) < now),
+          retryExpiry = (d.__caching__ && !isNaN(options.retryExpiry) && (updated + options.retryExpiry) < now);
+
+      if (expired || aged || retryExpiry) {
         d = undefined;
         return self.adapter.remove(key).then(keyNotFound);
       }
-
-      if (!d) keyNotFound();
 
       if (d.__caching__) {
         if (retry++ > maxRetries)
