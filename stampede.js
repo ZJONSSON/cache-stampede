@@ -40,8 +40,8 @@ Stampede.prototype.get = function(key,options,retry) {
           now = new Date();
 
       var expired = d.expiryTime && (now > +d.expiryTime),
-          aged = (!isNaN(options.maxAge) && (updated + options.maxAge) < now),
-          retryExpiry = (d.__caching__ && !isNaN(options.retryExpiry) && (updated + options.retryExpiry) < now);
+          aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now),
+          retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
 
       if (expired || aged || retryExpiry) {
         d = undefined;
