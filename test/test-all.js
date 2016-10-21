@@ -48,7 +48,6 @@ var caches = {
   file : stampede.file(path.join(__dirname,'filecache'))
 };
 
-caches = {mongoHistory: caches.mongoHistory}
 // Go through all caches and run tests
 Object.keys(caches)
   .forEach(function(name) {
