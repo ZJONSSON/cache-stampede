@@ -18,6 +18,9 @@ module.exports = function() {
   });
 
   describe('Encryption',function() {
+    after(function() {
+      this.cache.passphrase = undefined;
+    });
     describe('passphrase in object',function() {
       it('first `cached` should return output',function() {
         this.cache.passphrase = 'testing123';
