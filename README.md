@@ -21,7 +21,7 @@ This library can be initialized with a custom adapter.  A custom adapter needs t
 ## Methods
 
 #### `stampede.cached(key,fn,[options])`
-This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.  Old cached records can be purged by defining `maxAge` (in millisecond) in options when `.cached` is called.  Passing in `{maxAge:0}` will force a refresh.
+This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.  
 
 #### `stampede.get(key,[options],[retry])`
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).  If `expiry` was defined when the key was defined and it has expired, the key will be deleted and `KEY_NOT_FOUND` error thrown.   
@@ -37,6 +37,12 @@ Returns the `info` for the supplied key if this key is either caching or finishe
 
 #### Retry and expiry
 Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them. 
+
+#### maxAge
+Old cached records can be purged by defining `maxAge` (in millisecond) in options when `.cached` is called.  Passing in `{maxAge:0} will force a refresh.
+
+### find (mongo adapters only)
+If you include a `find` (mongo search object) in options, then the search criteria for pre-existing cached record will be an `$or` of the supplied key and the supplied `find` criteria.  This method can match a record with a different key than requested, provided the find criteria is fulfilled.  This can be very helpful when exact hashes can not be guaranteed between queries.
 
 #### Encyption
 You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.  You can also specify a record-specific `passphrase` in the options of each `cached`, `get` and `set` command.

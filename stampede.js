@@ -31,7 +31,7 @@ Stampede.prototype.get = function(key,options,retry) {
   if (options.preCache && options.preCache[key] !== undefined)
     value = Promise.resolve(options.preCache[key]);
 
-  return ( value  || this.adapter.get(key))
+  return ( value  || this.adapter.get(key,options))
     .then(function(d) {
       function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
       if (!d) keyNotFound();
@@ -136,8 +136,8 @@ Stampede.prototype.set = function(key,fn,options) {
     });
 };
 
-Stampede.prototype.info = function(key) {
-  return this.adapter.get(key)
+Stampede.prototype.info = function(key,options) {
+  return this.adapter.get(key,options)
     .then(function(d) {
       return d.info;
     });

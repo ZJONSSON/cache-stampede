@@ -6,7 +6,10 @@ Promise.promisifyAll(fs);
 
 module.exports = function(dir,prefix) {
   return {
-    get : function(key) {
+    get : function(key,options) {
+      if (options && options.find)
+        throw new Error('options `find` not supported in file adapter');
+      
       return fs.readFileAsync(path.join(dir,key+'.json'))
         .then(function(res) {
           return JSON.parse(res);

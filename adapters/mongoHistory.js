@@ -15,11 +15,17 @@ module.exports = function(collection) {
   });
   
   return {
-    get : function(key) {
+    get : function(key,options) {
+      options = options || {};
+      var criteria = {key: key};
+      if (options.find && Object.keys(options.find).length)
+        criteria = {$or: [
+          criteria,
+          options.find
+        ]};
+
       return collection.then(function(c) {
-        return c.find({
-          key: key
-        })
+        return c.find(criteria)
         .sort({updated: -1})
         .limit(1)
         .toArray()
