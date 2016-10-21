@@ -24,6 +24,13 @@ var caches = {
       })
   ),
 
+  mongoHistory : stampede.mongoHistory(
+    mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
+      .then(function(db) {
+        return db.collection('stampede_tests');
+      })
+  ),
+
   mongodb : stampede.mongodb(
      mongodb.MongoClient.connect('mongodb://localhost:27017/stampede_tests', {native_parser:true})
       .then(function(db) {
@@ -41,6 +48,7 @@ var caches = {
   file : stampede.file(path.join(__dirname,'filecache'))
 };
 
+caches = {mongoHistory: caches.mongoHistory}
 // Go through all caches and run tests
 Object.keys(caches)
   .forEach(function(name) {
