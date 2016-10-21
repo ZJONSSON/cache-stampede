@@ -48,6 +48,8 @@ var caches = {
   file : stampede.file(path.join(__dirname,'filecache'))
 };
 
+
+
 // Go through all caches and run tests
 Object.keys(caches)
   .forEach(function(name) {
@@ -56,6 +58,7 @@ Object.keys(caches)
     describe(name+' adapter',function() {
       before(function() {
         this.cache = cache;
+        this.adapterName = name;
       });
       tests.forEach(function(test) {
         test();

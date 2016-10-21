@@ -7,6 +7,7 @@ In `cache-stampede`, the first request to see an empty cache results for a parti
 Four basic database adapters are provided.
 * `require('cache-stampede').mongo(mongo_collection_object,[options])`  - Legacy promisification by bluebird
 * `require('cache-stampede').mongodb(mongo_collection_object,[options])`  - Uses mongodb 2.1.x internal promises
+* `require('cache-stampede').mongoHistory(mongo_collection_object,[options])`  - Retains history instead of purging
 * `require('cache-stampede').mongoose(collection_name,[options])`
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`

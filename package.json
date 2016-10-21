@@ -13,13 +13,13 @@
   },
   "license": "MIT",
   "dependencies": {
-    "bluebird": "~3.4.0",
-    "clues": "~3.5.0"
+    "bluebird": "~3.4.6",
+    "clues": "~3.5.12"
   },
   "devDependencies": {
-    "mongodb": "^2.1.4",
-    "mocha": "^1.21.4",
-    "mongoose": "^4.0.3",
-    "redis": "^0.12.1"
+    "mongodb": "^2.2.11",
+    "mocha": "~3.0.2",
+    "mongoose": "~4.6.4",
+    "redis": "~2.6.2"
   }
 }
