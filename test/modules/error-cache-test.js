@@ -14,7 +14,7 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('errorcache-testkey');
+    return this.cache.adapter.remove('errorcache-testkey',{all: true});
   });
 
   describe('Error with `cache` as true',function() {

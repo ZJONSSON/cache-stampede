@@ -13,8 +13,8 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('encryptkey');
-    return this.cache.adapter.remove('encryptkey2');
+    return this.cache.adapter.remove('encryptkey',{all: true});
+    return this.cache.adapter.remove('encryptkey2',{all: true});
   });
 
   describe('Encryption',function() {

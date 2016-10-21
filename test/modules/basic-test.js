@@ -1,6 +1,6 @@
 var assert = require('assert');
 
-function shouldError() { throw 'Should have errored';}
+function shouldError(d) { throw 'Should have errored';}
 function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
 function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
@@ -12,7 +12,7 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('testkey');
+    return this.cache.adapter.remove('testkey',{all: true});
   });
 
   describe('Basic test',function() {
