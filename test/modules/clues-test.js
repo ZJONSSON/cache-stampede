@@ -17,11 +17,11 @@ module.exports = function() {
   before(function() {
     this.cache.clues = true;
     return Promise.all([
-      this.cache.adapter.remove('clues-testkey'),
-      this.cache.adapter.remove('clues-testkey2'),
-      this.cache.adapter.remove('clues-testkey3'),
-      this.cache.adapter.remove('clues-testkey4'),
-      this.cache.adapter.remove('clues-testkey5')
+      this.cache.adapter.remove('clues-testkey',{all: true}),
+      this.cache.adapter.remove('clues-testkey2',{all: true}),
+      this.cache.adapter.remove('clues-testkey3',{all: true}),
+      this.cache.adapter.remove('clues-testkey4',{all: true}),
+      this.cache.adapter.remove('clues-testkey5',{all: true})
     ]);
   });
 

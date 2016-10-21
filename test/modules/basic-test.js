@@ -12,7 +12,7 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('testkey');
+    return this.cache.adapter.remove('testkey',{all: true});
   });
 
   describe('Basic test',function() {

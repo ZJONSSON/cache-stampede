@@ -14,7 +14,7 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('expiry-test');
+    return this.cache.adapter.remove('expiry-test',{all: true});
   });
 
   describe('With defined expiry',function() {
