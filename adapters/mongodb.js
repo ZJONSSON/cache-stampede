@@ -1,9 +1,19 @@
 module.exports = function(collection) {  
 
   return {    
-    get : function(key) {
+    get : function(key,options) {
+      options = options || {};
+      var criteria = {_id: key};
+
+      if (options.find) {
+        criteria = {$or: [
+          criteria,
+          options.find
+        ]};
+      }
+
       return collection.then(function(c) {
-        return c.findOne({_id:key});
+        return c.findOne(criteria);
       });
     },
 

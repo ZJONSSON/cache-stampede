@@ -17,8 +17,8 @@ module.exports = function() {
 
   before(function() {
     return Promise.all([
-      this.cache.adapter.remove('error-testkey'),
-      this.cache.adapter.remove('error-testkey2')
+      this.cache.adapter.remove('error-testkey',{all: true}),
+      this.cache.adapter.remove('error-testkey2',{all: true})
     ]);
   });
 

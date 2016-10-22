@@ -17,9 +17,9 @@ module.exports = function() {
 
   before(function() {
     return Promise.all([
-      this.cache.adapter.remove('delay-testkey'),
-      this.cache.adapter.remove('delay-testkey2'),
-      this.cache.adapter.remove('delay-testkey3')
+      this.cache.adapter.remove('delay-testkey',{all: true}),
+      this.cache.adapter.remove('delay-testkey2',{all: true}),
+      this.cache.adapter.remove('delay-testkey3',{all: true})
     ]);
   });
 

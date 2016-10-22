@@ -8,9 +8,19 @@ module.exports = function(collection) {
   
   return {
     
-    get : function(key) {
+    get : function(key,options) {
+      options = options || {};
+      var criteria = {_id: key};
+
+      if (options.find && Object.keys(options.find).length) {
+        criteria = {$or: [
+          criteria,
+          options.find
+        ]};
+      }
+
       return collection.then(function(c) {
-        return c.findOneAsync({_id:key});
+        return c.findOneAsync(criteria);
       });
     },
 

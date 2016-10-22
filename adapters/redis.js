@@ -7,7 +7,10 @@ module.exports = function(client,prefix) {
   Promise.promisifyAll(client);
   return {
 
-    get : function(key) {
+    get : function(key,options) {
+      if (options && options.find)
+        throw new Error('options `find` not supported in file adapter');
+      
       return client.getAsync(key)
         .then(function(res) {
           return JSON.parse(res);

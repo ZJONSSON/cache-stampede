@@ -13,11 +13,14 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('encryptkey');
-    return this.cache.adapter.remove('encryptkey2');
+    return this.cache.adapter.remove('encryptkey',{all: true});
+    return this.cache.adapter.remove('encryptkey2',{all: true});
   });
 
   describe('Encryption',function() {
+    after(function() {
+      this.cache.passphrase = undefined;
+    });
     describe('passphrase in object',function() {
       it('first `cached` should return output',function() {
         this.cache.passphrase = 'testing123';

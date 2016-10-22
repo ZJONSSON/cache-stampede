@@ -7,18 +7,21 @@ In `cache-stampede`, the first request to see an empty cache results for a parti
 Four basic database adapters are provided.
 * `require('cache-stampede').mongo(mongo_collection_object,[options])`  - Legacy promisification by bluebird
 * `require('cache-stampede').mongodb(mongo_collection_object,[options])`  - Uses mongodb 2.1.x internal promises
+* `require('cache-stampede').mongoHistory(mongo_collection_object,[options])`  - Retains history instead of purging
 * `require('cache-stampede').mongoose(collection_name,[options])`
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
 The relevant database libraries (mongo, mongodb, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` and `mongodb` adapters allows you to specify the collection as a promise to deliver a collection object (optional).
 
+A special adapter called `mongoHistory` retains historical cached values in the collection instead of deleting them. The adapter defines a custom method `getHistory` that returns all records for a particular key.
+
 This library can be initialized with a custom adapter.  A custom adapter needs to provide `get`, `insert`, `update` and `remove` functions which should return Promise A+ compliant promises.  The `insert` method should return `KEY_EXISTS` error if a key already exists in the datastore and the `get` method should return `null` or `undefined` if a key was not found.  Please note:  
 
 ## Methods
 
 #### `stampede.cached(key,fn,[options])`
-This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.  Old cached records can be purged by defining `maxAge` (in millisecond) in options when `.cached` is called.  Passing in `{maxAge:0}` will force a refresh.
+This function either returns a cached value for the supplied key or attempts to resolve the value and update the cache, returning a promise on the results.  If an `info` property is defined in the options, it will be stored (and available) immediately.  This function is explicitly bound to the stampede object and can be passed directly to consumers of the cache without having to bind it separately.  
 
 #### `stampede.get(key,[options],[retry])`
 Retrieve the supplied key from the cache. If the variable is __caching__ the function will retry until `maxRetries` is reached.  The resulting promise will either be resolved with the cached value or errored with the message `MAX_RETRIES`.  The retry parameter is internally used to keep track of how many retries have been made (if any).  If `expiry` was defined when the key was defined and it has expired, the key will be deleted and `KEY_NOT_FOUND` error thrown.   
@@ -34,6 +37,12 @@ Returns the `info` for the supplied key if this key is either caching or finishe
 
 #### Retry and expiry
 Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them. 
+
+#### maxAge
+Old cached records can be purged by defining `maxAge` (in millisecond) in options when `.cached` is called.  Passing in `{maxAge:0} will force a refresh.
+
+### find (mongo adapters only)
+If you include a `find` (mongo search object) in options, then the search criteria for pre-existing cached record will be an `$or` of the supplied key and the supplied `find` criteria.  This method can match a record with a different key than requested, provided the find criteria is fulfilled.  This can be very helpful when exact hashes can not be guaranteed between queries.
 
 #### Encyption
 You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.  You can also specify a record-specific `passphrase` in the options of each `cached`, `get` and `set` command.
