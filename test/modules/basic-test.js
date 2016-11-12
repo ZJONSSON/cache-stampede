@@ -12,7 +12,10 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('testkey',{all: true});
+    return Promise.all([
+      this.cache.adapter.remove('testkey',{all: true}),
+      this.cache.adapter.remove('rawkey',{all: true})
+    ]);
   });
 
   describe('Basic test',function() {
@@ -57,11 +60,38 @@ module.exports = function() {
       });
     });
 
+    describe('Caching with payload = true',function() {
+      it('`cached` returns the payload',function() {
+        return this.cache.cached('rawkey',testFn,{payload:true})
+          .then(function(d) {
+            assert.equal(d.data,result);
+            assert.equal(d.__caching__,false);
+            assert.equal(typeof d.updated.getMonth,'function');
+          });
+      });
+
+      it('subsequent `cached` returns the payload',function() {
+        return this.cache.cached('rawkey',shouldError,{payload:true})
+          .then(function(d) {
+            assert.equal(d.data,result);
+            assert.equal(d.__caching__,false);
+            assert.equal(typeof d.updated.getMonth,'function');
+          });
+      });
+
+    });
+
     describe('Getting from pre-cached',function() {
       it('returns available value',function() {
         return this.cache.cached('prekey1',function() { throw 'Should not run';},{preCache:{prekey1:{data:42}}})
           .then(function(d) {
             assert.equal(d,42);
+          });
+      });
+      it('returns available value raw',function() {
+        return this.cache.cached('prekey1',function() { throw 'Should not run';},{payload:true, preCache:{prekey1:{data:42}}})
+          .then(function(d) {
+            assert.equal(d.data,42);
           });
       });
     });

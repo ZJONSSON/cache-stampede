@@ -66,6 +66,7 @@ Stampede.prototype.get = function(key,options,retry) {
         d.data = self.decrypt(d.data,passphrase);
         d.encrypted = false;
       }
+      d.updated = new Date(d.updated);
       if (d.error) throw d.data;
       else return d;
     });
@@ -118,8 +119,9 @@ Stampede.prototype.set = function(key,fn,options) {
             if (d && d.error) payload.error = true;
             return self.adapter.update(key,payload,expiry)
               .then(function() {
+                payload.data = d;
                 if (payload.error) throw d;
-                else return d;
+                else return options.payload ? payload : d;
               });
           });
       }
@@ -144,10 +146,11 @@ Stampede.prototype.info = function(key,options) {
 };
 
 Stampede.prototype.cached = function(key,fn,options) {
+  options = options || {};
   var self = this;
    return this.get(key,options,0)
     .then(function(d) {
-      return d.data;
+      return options.payload ? d : d.data;
     },
     function(e) {
       if (e.message === 'KEY_NOT_FOUND') {
