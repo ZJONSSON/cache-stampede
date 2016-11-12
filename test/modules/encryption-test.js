@@ -43,6 +43,14 @@ module.exports = function() {
           .then(shouldEqual(result));
       });
 
+      it('`cached` with payload = true should return payload',function() {
+        return this.cache.cached('encryptkey',shouldNotRun, {payload:true})
+          .then(function(d) {
+            return d.data;
+          })
+          .then(shouldEqual(result));
+      });
+
       it('`get` should return decrypted cached result',function() {
         return this.cache.get('encryptkey')
           .then(function(d) {

@@ -35,6 +35,9 @@ Returns the `info` for the supplied key if this key is either caching or finishe
 
 ## Additional controls
 
+#### Payload
+Setting `payload: true` in options will return the full payload of a cached record, including `.updated`, `.expiry` etc.  The underlying data can be found under the `.data` property. 
+
 #### Retry and expiry
 Optional  control options are `maxRetries` and `retryDelay` and `expiry`  (in ms).  They are applied as default options to any request that doesn't explicitly specify them. 
 
