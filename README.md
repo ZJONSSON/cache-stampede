@@ -10,9 +10,10 @@ Four basic database adapters are provided.
 * `require('cache-stampede').mongoHistory(mongo_collection_object,[options])`  - Retains history instead of purging
 * `require('cache-stampede').mongoose(collection_name,[options])`
 * `require('cache-stampede').redis(redis_client,[options])`
+* `require('cache-stampede').dynamodb(aws_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-The relevant database libraries (mongo, mongodb, mongoose and redis) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` and `mongodb` adapters allows you to specify the collection as a promise to deliver a collection object (optional).
+The relevant database libraries (mongo, mongodb, mongoose, redis and dynamodb) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` and `mongodb` adapters allows you to specify the collection as a promise to deliver a collection object (optional).
 
 A special adapter called `mongoHistory` retains historical cached values in the collection instead of deleting them. The adapter defines a custom method `getHistory` that returns all records for a particular key.
 
