@@ -26,7 +26,7 @@ module.exports = function() {
     it('`set` should fail when db is still __caching__',function() {
       var self = this;
       self.cache.cached('error-testkey',testFn).catch(Object);
-      return Promise.delay(11)
+      return Promise.delay(50)
         .then(function() {
           return self.cache.set('error-testkey',function() { return 'New Value'; })
             .then(shouldError,errorMsg('KEY_EXISTS'));
