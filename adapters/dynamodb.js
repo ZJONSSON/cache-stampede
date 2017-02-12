@@ -8,13 +8,12 @@ module.exports = function(client,prefix) {
     get : function(key,options) {
       const query = {
         TableName: prefix,
-        KeyConditionExpression: "id = :id",
-        ExpressionAttributeValues: {
-          ":id": key
+        Key: {
+          "id":  key
         }
       };
-      return client.queryAsync(query)
-        .then(d => d.Items && d.Items[0] && JSON.parse(d.Items[0].ddata) || undefined);
+      return client.getAsync(query)
+        .then(d => d.Item && JSON.parse(d.Item.ddata) || undefined);
     },
 
     insert : function(key,d) {
