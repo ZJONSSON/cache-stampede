@@ -8,24 +8,44 @@ module.exports = function(client,prefix) {
     get : function(key,options) {
       const query = {
         TableName: prefix,
-        KeyConditionExpression: "id = :id",
-        ExpressionAttributeValues: {
-          ":id": key
+        Key: {
+          "id":  key
         }
       };
-      return client.queryAsync(query)
-        .then(d => d.Items && d.Items[0] && JSON.parse(d.Items[0].ddata) || undefined);
+      return client.getAsync(query)
+        .then(d => {
+          d = d.Item;
+          if (d) return {
+            _id: d.key,
+            data: d.cs_data,
+            __caching__: d.cs_caching,
+            info: d.cs_info,
+            updated : new Date(d.cs_updated),
+            encrypted: d.cs_encrypted,
+            error: d.cs_error,
+            expiryTime: d.cs_expiryTime
+          };
+        });
     },
 
     insert : function(key,d) {
+      d = {
+        id: key,
+        cs_data: d.data,
+        cs_caching: d.__caching__,
+        cs_updated: d.updated.valueOf(),
+        cs_info: d.info,
+        cs_encrypted: d.encrypted || false,
+        cs_error: d.error || false,
+        cs_expiryTime: d.expiryTime
+      };
+
       const query = {
         TableName: prefix,
-        Item: {
-          "id": key,
-          "ddata": JSON.stringify(d)
-        },
+        Item: d,
         ConditionExpression: "attribute_not_exists(id)"
       };
+      
       return client.putAsync(query)
         .catch(err => {
           if (err && err.code === 'ConditionalCheckFailedException')
@@ -41,9 +61,14 @@ module.exports = function(client,prefix) {
         Key: {
           "id": key,
         },
-        UpdateExpression: "set ddata = :d",
+        UpdateExpression: "set cs_data = :cs_data, cs_caching = :cs_caching, cs_encrypted = :cs_encrypted, cs_error = :cs_error, cs_updated =:cs_updated, cs_expiryTime = :cs_expiryTime",
         ExpressionAttributeValues: {
-          ":d": JSON.stringify(d)
+          ":cs_data": d.data,
+          ":cs_caching": d.__caching__,
+          ":cs_encrypted": d.encrypted ||false,
+          ":cs_error": d.error || false,
+          ":cs_updated": (d.updated || new Date()).valueOf(),
+          ":cs_expiryTime": (d.expiryTime && d.expiryTime.valueOf()  || 200000000000000)
         }
       };
       return client.updateAsync(query);

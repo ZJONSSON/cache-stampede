@@ -51,14 +51,22 @@ module.exports = function() {
     });
 
     it('re-running with zero delay should fail MAXIMUM_RETRIES',function() {
+      var self = this;
       this.cache.cached('delay-testkey2',testFn);
-      return this.cache.cached('delay-testkey2',testFn,{retryDelay:0})
+      return Promise.delay(50)
+        .then(function() {
+          return self.cache.cached('delay-testkey2',testFn,{retryDelay:0});
+        })      
         .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
     });
 
     it('rerunning with only one retry should fail',function() {
+      var self = this;
       this.cache.cached('delay-testkey3',testFn);
-      return this.cache.cached('delay-testkey3',testFn,{maxRetries:1})
+      return Promise.delay(50)
+        .then(function() {
+          return self.cache.cached('delay-testkey3',testFn,{maxRetries:1});
+        })
         .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
     });
   });
