@@ -1,10 +1,11 @@
 const delimiter = 'ᐅ';
 
 const serialize = d => {
+console.log('hi from serialize', d);
   const toplevel = (o,d,ref) => {
-    if (!o) o = {};
-    if (!ref) ref = '';
-    Object.keys(d).forEach(key => {
+    o = o || {};
+    ref = ref || '';
+    Object.keys(d||{}).forEach(key => {
       if (String(d[key]) === "[object Object]")
         toplevel(o,d[key],(ref&&ref+delimiter||'')+key);
       else
@@ -12,47 +13,51 @@ const serialize = d => {
     });
     return o;
   }
-  const data = {
+  let data = {
     id: d.key,
     cs_data: d.data,
     cs_caching: d.__caching__,
     cs_updated: d.updated.valueOf(),
-    cs_info: d.info,
     cs_encrypted: d.encrypted || false,
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
-  return toplevel(data);
+  if (d.info)
+    data = toplevel(data, d.info, 'cs_info');
+  console.log('serialize', data, d.info);
+  return data;
 };
 
 const deSerialize = d => {
-  const deToplevel = (o,d) => {
-    o = o || {};
-    Object.keys(d).reduce((o,key) => {
-      key.split(delimiter).forEach((k,i,a) => {
-        const target = a.slice(0,i).reduce((oo,d) => {oo[d]=oo[d]||{};return oo[d];}, o);
-        if (i === a.length-1)
-          target = d[key];
-      });
+console.log('hi from deserialize', d);
+  if (!d) return;
+  const deToplevel = (d,ref) => {
+    ref = ref || '';
+    return Object.keys(d||{}).reduce( (p,key) => {
+      let obj = p;
+      if (ref && key.indexOf(ref) === -1)
+        return p;
+      const keys = key.split(delimiter);
+      keys.slice(0,keys.length-1).forEach(key => obj = obj[key] = obj[key] || {});
+      obj[keys[keys.length-1]] = d[key];
+      return p;
     }, {});
-    return o;
   };
-  d = deToplevel(d);
-  if (d) return {
-    _id: d.key,
-    data: d.cs_data,
-    __caching__: d.cs_caching,
-    info: d.cs_info,
-    updated : new Date(d.cs_updated),
-    encrypted: d.cs_encrypted,
-    error: d.cs_error,
-    expiryTime: d.cs_expiryTime
-  };
+  let data = deToplevel(d,'cs_info');
+  data._id = d.key;
+  data.data = d.cs_data;
+  data.__caching__ = d.cs_caching;
+  data.updated = new Date(d.cs_updated);
+  data.encrypted = d.cs_encrypted;
+  data.error = d.cs_error;
+  data.expiryTime = d.cs_expiryTime;
+  console.log('deSerialize', data);
+  return data;
 };
 
 const formatUpdate = d => {
   d = serialize(d);
-  const str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+',';return o;},'set ');
+  let str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+',';return o;},'set ');
   str = str.substring(0, str.length-1); // remove last comma
   const values = Object.keys(d).reduce((o,k) => {o[':'+k]=d[k];return o;},{});
   return {
@@ -87,7 +92,6 @@ module.exports = function(client,prefix) {
         Item: d,
         ConditionExpression: "attribute_not_exists(id)"
       };
-      
       return client.putAsync(query)
         .catch(err => {
           if (err && err.code === 'ConditionalCheckFailedException')
@@ -117,7 +121,6 @@ module.exports = function(client,prefix) {
           "id": key,
         },
       };
-
       return client.deleteAsync(query);
     }
   };
