@@ -1,3 +1,66 @@
+const delimiter = 'ᐅ';
+
+const serialize = d => {
+  const toplevel = (o,d,ref) => {
+    if (!o) o = {};
+    if (!ref) ref = '';
+    Object.keys(d).forEach(key => {
+      if (String(d[key]) === "[object Object]")
+        toplevel(o,d[key],(ref&&ref+delimiter||'')+key);
+      else
+        o[(ref&&ref+delimiter||'')+key] = d[key];
+    });
+    return o;
+  }
+  const data = {
+    id: d.key,
+    cs_data: d.data,
+    cs_caching: d.__caching__,
+    cs_updated: d.updated.valueOf(),
+    cs_info: d.info,
+    cs_encrypted: d.encrypted || false,
+    cs_error: d.error || false,
+    cs_expiryTime: d.expiryTime
+  };
+  return toplevel(data);
+};
+
+const deSerialize = d => {
+  const deToplevel = (o,d) => {
+    o = o || {};
+    Object.keys(d).reduce((o,key) => {
+      key.split(delimiter).forEach((k,i,a) => {
+        const target = a.slice(0,i).reduce((oo,d) => {oo[d]=oo[d]||{};return oo[d];}, o);
+        if (i === a.length-1)
+          target = d[key];
+      });
+    }, {});
+    return o;
+  };
+  d = deToplevel(d);
+  if (d) return {
+    _id: d.key,
+    data: d.cs_data,
+    __caching__: d.cs_caching,
+    info: d.cs_info,
+    updated : new Date(d.cs_updated),
+    encrypted: d.cs_encrypted,
+    error: d.cs_error,
+    expiryTime: d.cs_expiryTime
+  };
+};
+
+const formatUpdate = d => {
+  d = serialize(d);
+  const str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+',';return o;},'set ');
+  str = str.substring(0, str.length-1); // remove last comma
+  const values = Object.keys(d).reduce((o,k) => {o[':'+k]=d[k];return o;},{});
+  return {
+    UpdateExpression: str,
+    ExpressionAttributeValues: values
+  };
+};
+
 const Promise = require('bluebird');
 
 module.exports = function(client,prefix) {  
@@ -13,33 +76,12 @@ module.exports = function(client,prefix) {
         }
       };
       return client.getAsync(query)
-        .then(d => {
-          d = d.Item;
-          if (d) return {
-            _id: d.key,
-            data: d.cs_data,
-            __caching__: d.cs_caching,
-            info: d.cs_info,
-            updated : new Date(d.cs_updated),
-            encrypted: d.cs_encrypted,
-            error: d.cs_error,
-            expiryTime: d.cs_expiryTime
-          };
-        });
+        .then(d => deSerialize(d.Item));
     },
 
     insert : function(key,d) {
-      d = {
-        id: key,
-        cs_data: d.data,
-        cs_caching: d.__caching__,
-        cs_updated: d.updated.valueOf(),
-        cs_info: d.info,
-        cs_encrypted: d.encrypted || false,
-        cs_error: d.error || false,
-        cs_expiryTime: d.expiryTime
-      };
-
+      d.key = key;
+      d = serialize(d); 
       const query = {
         TableName: prefix,
         Item: d,
@@ -56,20 +98,14 @@ module.exports = function(client,prefix) {
     },
 
     update : function(key,d) {
+      d = formatUpdate(d);
       const query = {
         TableName: prefix,
         Key: {
           "id": key,
         },
-        UpdateExpression: "set cs_data = :cs_data, cs_caching = :cs_caching, cs_encrypted = :cs_encrypted, cs_error = :cs_error, cs_updated =:cs_updated, cs_expiryTime = :cs_expiryTime",
-        ExpressionAttributeValues: {
-          ":cs_data": d.data,
-          ":cs_caching": d.__caching__,
-          ":cs_encrypted": d.encrypted ||false,
-          ":cs_error": d.error || false,
-          ":cs_updated": (d.updated || new Date()).valueOf(),
-          ":cs_expiryTime": (d.expiryTime && d.expiryTime.valueOf()  || 200000000000000)
-        }
+        UpdateExpression: d.UpdateExpression,
+        ExpressionAttributeValues: d.ExpressionAttributeValues
       };
       return client.updateAsync(query);
     },
