@@ -1,7 +1,7 @@
-const delimiter = 'ᐅ';
+const delimiter = '___';
 
+// TODO onelevel
 const serialize = d => {
-console.log('hi from serialize', d);
   const toplevel = (o,d,ref) => {
     o = o || {};
     ref = ref || '';
@@ -24,12 +24,10 @@ console.log('hi from serialize', d);
   };
   if (d.info)
     data = toplevel(data, d.info, 'cs_info');
-  console.log('serialize', data, d.info);
   return data;
 };
 
 const deSerialize = d => {
-console.log('hi from deserialize', d);
   if (!d) return;
   const deToplevel = (d,ref) => {
     ref = ref || '';
@@ -51,14 +49,16 @@ console.log('hi from deserialize', d);
   data.encrypted = d.cs_encrypted;
   data.error = d.cs_error;
   data.expiryTime = d.cs_expiryTime;
-  console.log('deSerialize', data);
   return data;
 };
 
 const formatUpdate = d => {
   d = serialize(d);
-  let str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+',';return o;},'set ');
-  str = str.substring(0, str.length-1); // remove last comma
+  delete d.id;
+  d.cs_updated = (d.cs_updated || new Date()).valueOf();
+  d.cs_expiryTime = d.cs_expiryTime && d.cs_expiryTime.valueOf() || 200000000000000;
+  let str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+', ';return o;},'set ');
+  str = str.substring(0, str.length-2); // remove last comma
   const values = Object.keys(d).reduce((o,k) => {o[':'+k]=d[k];return o;},{});
   return {
     UpdateExpression: str,
