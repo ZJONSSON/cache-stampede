@@ -1,18 +1,6 @@
 const delimiter = '___';
 
-// TODO onelevel
 const serialize = d => {
-  const toplevel = (o,d,ref) => {
-    o = o || {};
-    ref = ref || '';
-    Object.keys(d||{}).forEach(key => {
-      if (String(d[key]) === "[object Object]")
-        toplevel(o,d[key],(ref&&ref+delimiter||'')+key);
-      else
-        o[(ref&&ref+delimiter||'')+key] = d[key];
-    });
-    return o;
-  }
   let data = {
     id: d.key,
     cs_data: d.data,
@@ -22,33 +10,25 @@ const serialize = d => {
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
-  if (d.info)
-    data = toplevel(data, d.info, 'cs_info');
+  Object.keys(d.info||{}).forEach(key => data['cs_info'+delimiter+key] = d.info[key]);
   return data;
 };
 
 const deSerialize = d => {
   if (!d) return;
-  const deToplevel = (d,ref) => {
-    ref = ref || '';
-    return Object.keys(d||{}).reduce( (p,key) => {
-      let obj = p;
-      if (ref && key.indexOf(ref) === -1)
-        return p;
-      const keys = key.split(delimiter);
-      keys.slice(0,keys.length-1).forEach(key => obj = obj[key] = obj[key] || {});
-      obj[keys[keys.length-1]] = d[key];
-      return p;
-    }, {});
+  let data = {
+    _id: d.key,
+    data: d.cs_data,
+    __caching__: d.cs_caching,
+    updated: new Date(d.cs_updated),
+    encrypted: d.cs_encrypted,
+    error: d.cs_error,
+    expiryTime: d.cs_expiryTime,
+    info: {}
   };
-  let data = deToplevel(d,'cs_info');
-  data._id = d.key;
-  data.data = d.cs_data;
-  data.__caching__ = d.cs_caching;
-  data.updated = new Date(d.cs_updated);
-  data.encrypted = d.cs_encrypted;
-  data.error = d.cs_error;
-  data.expiryTime = d.cs_expiryTime;
+  data.info = Object.keys(d).reduce((o,key) => {
+    if (key.indexOf('cs_info') !== -1) o[key.split(delimiter)[1]] = d[key];
+  }, {});
   return data;
 };
 
