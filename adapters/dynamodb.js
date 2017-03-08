@@ -10,7 +10,10 @@ const serialize = d => {
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
-  Object.keys(d.info||{}).forEach(key => data['cs_info'+delimiter+key] = d.info[key]);
+  if (String(d.info) === '[object Object]')
+    Object.keys(d.info||{}).forEach(key => data['cs_info'+delimiter+key] = d.info[key]);
+  else if (d.info)
+    data.cs_info = d.info;
   return data;
 };
 
@@ -23,12 +26,19 @@ const deSerialize = d => {
     updated: new Date(d.cs_updated),
     encrypted: d.cs_encrypted,
     error: d.cs_error,
-    expiryTime: d.cs_expiryTime,
-    info: {}
+    expiryTime: d.cs_expiryTime
   };
-  data.info = Object.keys(d).reduce((o,key) => {
-    if (key.indexOf('cs_info') !== -1) o[key.split(delimiter)[1]] = d[key];
+  const info = Object.keys(d).reduce((o,key) => {
+    if (key.includes('cs_info')) {
+      if (key.includes(delimiter))
+        o[key.split(delimiter)[1]] = d[key];
+      else
+        o = d[key];
+    }
+    return o;
   }, {});
+  if (info && info.length)
+    data.info = info;
   return data;
 };
 
