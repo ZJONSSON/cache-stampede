@@ -4,22 +4,14 @@ var fs = require('fs'),
     mongodb = require('mongodb'),
     Promise = require('bluebird'),
     mongoose = require('mongoose'),
-    AWS = require('aws-sdk');
+    AWS = require('aws-sdk'),
+    dynamodbSchema = require('./dynamodb_schema');
 
 Promise.promisifyAll(mongodb.MongoClient);
 
 mongoose.connect('mongodb://localhost:27017/stampede_tests');
 
 AWS.config.update({ region: 'us-east-1', endpoint: 'http://localhost:8000' });
-var dynamodbTableSchema = {
-  TableName : "cache",
-  KeySchema: [ { AttributeName: "id", KeyType: "HASH" } ],
-  AttributeDefinitions: [ { AttributeName: "id", AttributeType: "S" } ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 10,
-    WriteCapacityUnits: 10
-  }
-};
 
 // Require in all tests in the modules directory
 var tests = fs.readdirSync(path.join(__dirname,'modules'))
@@ -67,14 +59,14 @@ var caches = {
 var befores = {
   dynamodb: function() {
     var dynamodb = Promise.promisifyAll(new AWS.DynamoDB());
-    return dynamodb.deleteTableAsync({TableName:dynamodbTableSchema.TableName})
+    return dynamodb.deleteTableAsync({TableName:dynamodbSchema.TableName})
       .catch(err => {
         if (!err.cause || err.cause.message !== 'Cannot do operations on a non-existent table') {
           console.log(err);
           throw err;
         }
       })
-      .then(() => dynamodb.createTableAsync(dynamodbTableSchema))
+      .then(() => dynamodb.createTableAsync(dynamodbSchema))
       .catch(err => {
         if (!err.cause || err.cause.message !== 'Cannot create preexisting table') {
           console.log(err);
