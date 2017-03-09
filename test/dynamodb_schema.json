@@ -1,0 +1,34 @@
+{
+  "TableName" : "cache",
+  "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
+  "AttributeDefinitions": [
+    { "AttributeName": "id", "AttributeType": "S" },
+    { "AttributeName": "cs_updated", "AttributeType": "S" },
+    { "AttributeName": "cs_caching", "AttributeType": "S" },
+    { "AttributeName": "cs_info___type", "AttributeType": "S" }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 10,
+    "WriteCapacityUnits": 10
+  },
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "type_updated",
+      "KeySchema": [ { "AttributeName": "cs_info___type", "KeyType": "HASH" }, { "AttributeName": "cs_updated", "KeyType": "RANGE" } ],
+      "Projection": { "ProjectionType": "KEYS_ONLY" },
+      "ProvisionedThroughput": { "ReadCapacityUnits": 10, "WriteCapacityUnits": 10 }
+    },
+    {
+      "IndexName": "id_updated",
+      "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" }, { "AttributeName": "cs_updated", "KeyType": "RANGE" } ],
+      "Projection": { "ProjectionType": "KEYS_ONLY" },
+      "ProvisionedThroughput": { "ReadCapacityUnits": 10, "WriteCapacityUnits": 10 }
+    },
+    {
+      "IndexName": "id_caching",
+      "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" }, { "AttributeName": "cs_caching", "KeyType": "RANGE" } ],
+      "Projection": { "ProjectionType": "KEYS_ONLY" },
+      "ProvisionedThroughput": { "ReadCapacityUnits": 10, "WriteCapacityUnits": 10 }
+    }
+  ]
+}
