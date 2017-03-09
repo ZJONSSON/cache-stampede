@@ -5,7 +5,7 @@ const serialize = d => {
     id: d.key,
     cs_data: d.data,
     cs_caching: String(d.__caching__),
-    cs_updated: String(d.updated),
+    cs_updated: d.updated.toISOString(),
     cs_encrypted: d.encrypted || false,
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
