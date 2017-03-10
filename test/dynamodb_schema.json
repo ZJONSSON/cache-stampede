@@ -4,7 +4,7 @@
   "AttributeDefinitions": [
     { "AttributeName": "id", "AttributeType": "S" },
     { "AttributeName": "cs_updated", "AttributeType": "S" },
-    { "AttributeName": "cs_caching", "AttributeType": "S" },
+    { "AttributeName": "cs_caching", "AttributeType": "N" },
     { "AttributeName": "cs_info___type", "AttributeType": "S" }
   ],
   "ProvisionedThroughput": {

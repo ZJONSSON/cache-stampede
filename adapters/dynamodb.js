@@ -4,7 +4,7 @@ const serialize = d => {
   let data = {
     id: d.key,
     cs_data: d.data,
-    cs_caching: String(d.__caching__),
+    cs_caching: Number(d.__caching__),
     cs_updated: d.updated.toISOString(),
     cs_encrypted: d.encrypted || false,
     cs_error: d.error || false,
@@ -22,7 +22,7 @@ const deSerialize = d => {
   let data = {
     _id: d.key,
     data: d.cs_data,
-    __caching__: d.cs_caching === 'true',
+    __caching__: Boolean(d.cs_caching),
     updated: new Date(d.cs_updated),
     encrypted: d.cs_encrypted,
     error: d.cs_error,
