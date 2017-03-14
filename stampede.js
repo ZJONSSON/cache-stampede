@@ -1,6 +1,8 @@
 var Promise = require('bluebird'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    zlib = require('zlib');
 
+Promise.promisifyAll(zlib);
 
 function Stampede(options) {
   if (!(this instanceof Stampede))
@@ -58,7 +60,11 @@ Stampede.prototype.get = function(key,options,retry) {
           });
       }
 
-      return d;
+      if (d.compressed) {
+        d.data = zlib.inflateAsync(new Buffer(d.data,'base64')).then(JSON.parse);
+      }
+
+      return Promise.props(d);
     })
     .then(function(d) {
       if (d.encrypted) {
@@ -86,7 +92,7 @@ Stampede.prototype.set = function(key,fn,options) {
   if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
   return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
-    .then(function(d) {
+    .then(function() {
 
       function finalize(d) {
         return Promise.resolve(d)
@@ -115,15 +121,27 @@ Stampede.prototype.set = function(key,fn,options) {
             } else {
               payload.data = d;
             }
-            payload.__caching__ = false;
-            if (d && d.error) payload.error = true;
-            return self.adapter.update(key,payload,expiry)
-              .then(function() {
-                payload.data = d;
-                if (payload.error) throw d;
-                else return options.payload ? payload : d;
+
+            var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
+            if (compressed) {
+              payload.compressed = true;
+              payload.data = zlib.deflateAsync(JSON.stringify(payload.data)).then(function(s) {
+                return s.toString('base64');
               });
-          });
+            }
+
+            return Promise.props(payload)
+              .then(function(payload) {
+                payload.__caching__ = false;
+                if (d && d.error) payload.error = true;
+                return self.adapter.update(key,payload,expiry)
+                  .then(function() {
+                    payload.data = d;
+                    if (payload.error) throw d;
+                    else return options.payload ? payload : d;
+                  });
+              });
+            });
       }
 
       if (options.clues) {
