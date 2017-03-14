@@ -22,37 +22,37 @@ var tests = fs.readdirSync(path.join(__dirname,'modules'))
 
 // Define caches for each adaptor
 var caches = {
-  mongo : stampede.mongo(
+  mongo : () => stampede.mongo(
     mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
       .then(function(db) {
         return db.collection('stampede_tests');
       })
   ),
 
-  mongoHistory : stampede.mongoHistory(
+  mongoHistory : () => stampede.mongoHistory(
     mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
       .then(function(db) {
         return db.collection('stampede_tests');
       })
   ),
 
-  mongodb : stampede.mongodb(
+  mongodb : () => stampede.mongodb(
      mongodb.MongoClient.connect('mongodb://localhost:27017/stampede_tests', {native_parser:true})
       .then(function(db) {
         return db.collection('stampede_tests');
       })
   ),
 
-  mongoose : stampede.mongoose('stampede_tests',{mongoose:mongoose}),
+  mongoose : () =>  stampede.mongoose('stampede_tests',{mongoose:mongoose}),
 
-  redis : stampede.redis(
+  redis : () => stampede.redis(
     require('redis')
       .createClient()
   ),
 
-  dynamodb : stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
+  dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
 
-  file : stampede.file(path.join(__dirname,'filecache'))
+  file : () => stampede.file(path.join(__dirname,'filecache'))
 };
 
 // define before hooks for adapters
@@ -79,7 +79,11 @@ var befores = {
 // Go through all caches and run tests
 Object.keys(caches)
   .forEach(function(name) {
-    var cache = caches[name];
+
+    if (process.argv[3] && name !== process.argv[3])
+      return;
+
+    var cache = caches[name]();
 
     describe(name+' adapter',function() {
       before(function() {
