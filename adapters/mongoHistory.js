@@ -30,7 +30,11 @@ module.exports = function(collection) {
         .limit(1)
         .toArray()
         .then(function(d) {
-          return d[0];
+          d = d[0];
+          if (d && d.data && d.data.buffer)
+            d.data = d.data.buffer;
+          return d;
+
         });
       });
     },

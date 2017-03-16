@@ -12,7 +12,10 @@ module.exports = function(dir,prefix) {
       
       return fs.readFileAsync(path.join(dir,key+'.json'))
         .then(function(res) {
-          return JSON.parse(res);
+          res = JSON.parse(res);
+          if (res.base64 || (res.compressed && typeof res.data === 'string'))
+            res.data = new Buffer(res.data,'base64');
+          return res;
         })
         .catch(function() {
           return undefined;
@@ -21,6 +24,10 @@ module.exports = function(dir,prefix) {
 
     insert : function(key,d) {
       d._id = key;
+      if (d.data instanceof Buffer) {
+        d.data = d.data.toString('base64');
+        d.base64 = true;
+      }
       d = JSON.stringify(d,null,2);
       return fs.writeFileAsync(path.join(dir,key+'.json'),d,{flag:'wx'})
         .catch(function(err) {
@@ -33,6 +40,10 @@ module.exports = function(dir,prefix) {
 
     update : function(key,d) {
       d._id = key;
+      if (d.data instanceof Buffer) {
+        d.data = d.data.toString('base64');
+        d.base64 = true;
+      }
       d = JSON.stringify(d,null,2);
       return fs.writeFileAsync(path.join(dir,key+'.json'),d);
     },

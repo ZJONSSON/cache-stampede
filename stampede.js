@@ -61,7 +61,7 @@ Stampede.prototype.get = function(key,options,retry) {
       }
 
       if (d.compressed) {
-        d.data = zlib.inflateAsync(new Buffer(d.data,'base64')).then(JSON.parse);
+        d.data = zlib.inflateAsync(d.data).then(JSON.parse);
       }
 
       return Promise.props(d);
@@ -95,8 +95,9 @@ Stampede.prototype.set = function(key,fn,options) {
     .then(function() {
 
       function finalize(d) {
+        var raw_data;
         return Promise.resolve(d)
-         .catch(function(e) {
+          .catch(function(e) {
             if (typeof e === 'string') e = {message:e};
             // If the error is to be cached we transform into a JSON object
             if (e && e.cache) {
@@ -113,35 +114,36 @@ Stampede.prototype.set = function(key,fn,options) {
                 throw e;
               });
           })
+          // Optional compression
           .then(function(d) {
+            raw_data = d;
+            // Optional encryption
             var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
             if (passphrase) {
               payload.encrypted = true;
-              payload.data = self.encrypt(d,passphrase);
-            } else {
-              payload.data = d;
-            }
+              d = self.encrypt(d,passphrase);
+            } 
 
+            // Optional compression
             var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
             if (compressed) {
               payload.compressed = true;
-              payload.data = zlib.deflateAsync(JSON.stringify(payload.data)).then(function(s) {
-                return s.toString('base64');
-              });
+              return zlib.deflateAsync(JSON.stringify(d));
             }
-
-            return Promise.props(payload)
-              .then(function(payload) {
-                payload.__caching__ = false;
-                if (d && d.error) payload.error = true;
-                return self.adapter.update(key,payload,expiry)
-                  .then(function() {
-                    payload.data = d;
-                    if (payload.error) throw d;
-                    else return options.payload ? payload : d;
-                  });
-              });
-            });
+            else return d;
+          })
+          
+          .then(function(d) {
+            payload.data = d;
+            payload.__caching__ = false;
+            if (d && d.error) payload.error = true;
+            return self.adapter.update(key,payload,expiry);
+          })
+          .then(function() {
+            payload.data = raw_data;
+            if (payload.error) throw payload.data;
+            else return options.payload ? payload : payload.data;
+          });
       }
 
       if (options.clues) {

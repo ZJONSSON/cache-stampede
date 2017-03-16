@@ -16,7 +16,10 @@ module.exports = function() {
   }
 
   before(function() {
-    return this.cache.adapter.remove('compresskey1',{all: true});
+    return Promise.all([
+      this.cache.adapter.remove('compresskey1',{all: true}),
+      this.cache.adapter.remove('compresskey2',{all: true})
+    ]);
   });
 
   describe('Compressed',function() {
@@ -31,7 +34,8 @@ module.exports = function() {
         .then(function(d) {
           assert.equal(d.__caching__,false);
           assert.notEqual(d.data,result);
-          return zlib.inflateAsync(new Buffer(d.data,'base64')).then(d => JSON.parse(d));
+
+          return zlib.inflateAsync(d.data).then(d => JSON.parse(d));
         })
         .then(shouldEqual(result));
     });
@@ -69,9 +73,12 @@ module.exports = function() {
       return self.cache.adapter.get('compresskey2')
         .then(function(d) {
           assert.equal(d.__caching__,false);
-          assert.notEqual(d.data,result);
-          return zlib.inflateAsync(new Buffer(d.data,'base64'))
-            .then(d => self.cache.decrypt(JSON.parse(d),'abc123'));
+          assert.notEqual(d.data,result);         
+          return zlib.inflateAsync(d.data)
+            .then(d => {
+              d = d.toString();
+              return self.cache.decrypt(d,'abc123');
+            });
         })
         .then(shouldEqual(result));
     });
