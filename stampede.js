@@ -1,6 +1,8 @@
 var Promise = require('bluebird'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    zlib = require('zlib');
 
+Promise.promisifyAll(zlib);
 
 function Stampede(options) {
   if (!(this instanceof Stampede))
@@ -58,7 +60,11 @@ Stampede.prototype.get = function(key,options,retry) {
           });
       }
 
-      return d;
+      if (d.compressed) {
+        d.data = zlib.inflateAsync(d.data).then(JSON.parse);
+      }
+
+      return Promise.props(d);
     })
     .then(function(d) {
       if (d.encrypted) {
@@ -86,11 +92,12 @@ Stampede.prototype.set = function(key,fn,options) {
   if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
   return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
-    .then(function(d) {
+    .then(function() {
 
       function finalize(d) {
+        var raw_data;
         return Promise.resolve(d)
-         .catch(function(e) {
+          .catch(function(e) {
             if (typeof e === 'string') e = {message:e};
             // If the error is to be cached we transform into a JSON object
             if (e && e.cache) {
@@ -107,22 +114,35 @@ Stampede.prototype.set = function(key,fn,options) {
                 throw e;
               });
           })
+          // Optional compression
           .then(function(d) {
+            raw_data = d;
+            // Optional encryption
             var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
             if (passphrase) {
               payload.encrypted = true;
-              payload.data = self.encrypt(d,passphrase);
-            } else {
-              payload.data = d;
+              d = self.encrypt(d,passphrase);
+            } 
+
+            // Optional compression
+            var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
+            if (compressed) {
+              payload.compressed = true;
+              return zlib.deflateAsync(JSON.stringify(d));
             }
+            else return d;
+          })
+          
+          .then(function(d) {
+            payload.data = d;
             payload.__caching__ = false;
             if (d && d.error) payload.error = true;
-            return self.adapter.update(key,payload,expiry)
-              .then(function() {
-                payload.data = d;
-                if (payload.error) throw d;
-                else return options.payload ? payload : d;
-              });
+            return self.adapter.update(key,payload,expiry);
+          })
+          .then(function() {
+            payload.data = raw_data;
+            if (payload.error) throw payload.data;
+            else return options.payload ? payload : payload.data;
           });
       }
 

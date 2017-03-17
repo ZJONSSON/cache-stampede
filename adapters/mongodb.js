@@ -13,7 +13,12 @@ module.exports = function(collection) {
       }
 
       return collection.then(function(c) {
-        return c.findOne(criteria);
+        return c.findOne(criteria)
+          .then(function(d) {
+            if (d && d.data && d.data.buffer)
+              d.data = d.data.buffer;
+            return d;
+          });
       });
     },
 

@@ -51,6 +51,9 @@ If you include a `find` (mongo search object) in options, then the search criter
 #### Encyption
 You can (optional) specify `passphrase` and `algo` (defaults to `aes192`) when you require the module, to encrypt/decrypt all data that flows through the cache.  Any record that was saved with a passphrase will be encrypted and have the property `encrypted` equal to `true` in the database record.  You can also specify a record-specific `passphrase` in the options of each `cached`, `get` and `set` command.
 
+### Compression
+If you specify `compression` as true the data will be deflated into a base64 string.   When data is fetched from the cache, stampede will look for a `compressed: true` flag and automatically inflate the contents when required.
+
 #### preCache
 When processing bulk-data it is often conventient to load data in bulk from cache as well.  By defining an object `perCache` in options you can supply any known information to avoid repeat calls to the db.  If a any requested key is found in `preCache` it is simply returned, otherwise the regular caching mechanism applies.   The objects in `preCache` need to adhere to the `cache-stampede` storage specification, i.e. the data should be under property `data`.
 

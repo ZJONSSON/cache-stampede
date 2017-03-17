@@ -5,6 +5,7 @@ const serialize = d => {
     cs_caching: Number(d.__caching__),
     cs_updated: d.updated.toISOString(),
     cs_encrypted: d.encrypted || false,
+    cs_compressed: d.compressed || false,
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
@@ -23,6 +24,7 @@ const deSerialize = d => {
     __caching__: Boolean(d.cs_caching),
     updated: new Date(d.cs_updated),
     encrypted: d.cs_encrypted,
+    compressed: d.cs_compressed,
     error: d.cs_error,
     expiryTime: d.cs_expiryTime
   };
