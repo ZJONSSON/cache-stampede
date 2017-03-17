@@ -1,5 +1,3 @@
-const delimiter = '___';
-
 const serialize = d => {
   let data = {
     id: d.key,
@@ -11,7 +9,7 @@ const serialize = d => {
     cs_expiryTime: d.expiryTime
   };
   if (String(d.info) === '[object Object]')
-    Object.keys(d.info||{}).forEach(key => data['cs_info'+delimiter+key] = d.info[key]);
+    Object.keys(d.info||{}).forEach(key => data['cs_info_'+key] = d.info[key]);
   else if (d.info)
     data.cs_info = d.info;
   return data;
@@ -29,12 +27,10 @@ const deSerialize = d => {
     expiryTime: d.cs_expiryTime
   };
   const info = Object.keys(d).reduce((o,key) => {
-    if (key.includes('cs_info')) {
-      if (key.includes(delimiter))
-        o[key.split(delimiter)[1]] = d[key];
-      else
-        o = d[key];
-    }
+    if (key.includes('cs_info_'))
+      o[key.split('cs_info_')[1]] = d[key];
+    else if (key.includes('cs_info'))
+      o = d[key];
     return o;
   }, {});
   if (info && info.length)
