@@ -43,6 +43,7 @@ const deSerialize = d => {
 const formatUpdate = d => {
   d = serialize(d);
   delete d.id;
+  Object.keys(d).forEach(key => { if (d[key] === undefined) delete d[key]; });
   d.cs_updated = (d.cs_updated || new Date()).valueOf();
   d.cs_expiryTime = d.cs_expiryTime && d.cs_expiryTime.valueOf() || 200000000000000;
   let str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+', ';return o;},'set ');
