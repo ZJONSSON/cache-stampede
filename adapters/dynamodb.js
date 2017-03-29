@@ -1,7 +1,6 @@
 const serialize = d => {
   let data = {
     id: d.key,
-    cs_data: d.data,
     cs_caching: Number(d.__caching__),
     cs_updated: d.updated.toISOString(),
     cs_encrypted: d.encrypted || false,
@@ -9,6 +8,8 @@ const serialize = d => {
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
+  if (d.data !== undefined)
+    d.cs_data = d.data;
   if (String(d.info) === '[object Object]')
     Object.keys(d.info||{}).forEach(key => data['cs_info_'+key] = d.info[key]);
   else if (d.info)
@@ -43,7 +44,6 @@ const deSerialize = d => {
 const formatUpdate = d => {
   d = serialize(d);
   delete d.id;
-  Object.keys(d).forEach(key => { if (d[key] === undefined) delete d[key]; });
   d.cs_updated = (d.cs_updated || new Date()).valueOf();
   d.cs_expiryTime = d.cs_expiryTime && d.cs_expiryTime.valueOf() || 200000000000000;
   let str = Object.keys(d).reduce((o,k) => {o+=k+' = :'+k+', ';return o;},'set ');
