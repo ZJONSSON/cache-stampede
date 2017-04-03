@@ -10,6 +10,10 @@ const serialize = d => {
   };
   if (d.data !== undefined)
     d.cs_data = d.data;
+  if (d.data instanceof Buffer) {
+    d.cs_data = d.data.toString('base64');
+    d.cs_base64 = true;
+  }
   if (String(d.info) === '[object Object]')
     Object.keys(d.info||{}).forEach(key => data['cs_info_'+key] = d.info[key]);
   else if (d.info)
@@ -26,6 +30,7 @@ const deSerialize = d => {
     updated: new Date(d.cs_updated),
     encrypted: d.cs_encrypted,
     compressed: d.cs_compressed,
+    base64: d.cs_base64,
     error: d.cs_error,
     expiryTime: d.cs_expiryTime
   };
@@ -38,6 +43,8 @@ const deSerialize = d => {
   }, {});
   if (info && info.length)
     data.info = info;
+  if (data.data && (data.base64 || (data.compressed && typeof data.data === 'string')))
+    data.data = new Buffer(data.data,'base64');
   return data;
 };
 
