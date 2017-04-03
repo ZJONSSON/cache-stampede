@@ -5,7 +5,6 @@ const serialize = d => {
     cs_updated: d.updated.toISOString(),
     cs_encrypted: d.encrypted || false,
     cs_compressed: d.compressed || false,
-    cs_base64: d.base64 || false,
     cs_error: d.error || false,
     cs_expiryTime: d.expiryTime
   };
@@ -13,7 +12,7 @@ const serialize = d => {
     d.cs_data = d.data;
   if (d.data instanceof Buffer) {
     d.cs_data = d.data.toString('base64');
-    d.base64 = true;
+    d.cs_base64 = true;
   }
   if (String(d.info) === '[object Object]')
     Object.keys(d.info||{}).forEach(key => data['cs_info_'+key] = d.info[key]);
