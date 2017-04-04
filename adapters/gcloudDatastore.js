@@ -1,3 +1,18 @@
+const serialize = d => {
+  const data = Object.assign({}, d);
+  data.caching = data.__caching__;
+  delete data.__caching__;
+  return data;
+};
+
+const deSerialize = d => {
+  if (!d) return;
+  const data = Object.assign({}, d);
+  data.__caching__ = data.caching;
+  delete data.caching;
+  return data;
+};
+
 const Promise = require('bluebird');
 
 module.exports = function(client,prefix) {  
@@ -7,22 +22,15 @@ module.exports = function(client,prefix) {
     get : function(key,options) {
       var query = client.key([prefix,key]);
       return client.get(query)
-        .then(d => {
-          let data = d && d[0] && d[0].d && JSON.parse(d[0].d);
-          if (data && (data.base64 || (data.compressed && typeof data.data === 'string')))
-            data.data = new Buffer(data.data,'base64');
-          return data;
-        });
+        .then(d => deSerialize(d && d[0] && d[0].d));
     },
 
     insert : function(key,d) {
-      if (d && d.data instanceof Buffer) {
-        d.data = d.data.toString('base64');
-        d.base64 = true;
-      }
+      d.key = key;
+      d = serialize(d);
       var query = {
         key: client.key([prefix,key]),
-        data: { d: JSON.stringify(d) }
+        data: { d: d }
       };
       const transaction = client.transaction();
       return transaction.run()
@@ -40,13 +48,11 @@ module.exports = function(client,prefix) {
     },
 
     update : function(key,d) {
-      if (d && d.data instanceof Buffer) {
-        d.data = d.data.toString('base64');
-        d.base64 = true;
-      }
+      d.key = key;
+      d = serialize(d);
       var query = {
         key: client.key([prefix,key]),
-        data: { d: JSON.stringify(d) }
+        data: { d: d }
       };
       return client.update(query);
     },
