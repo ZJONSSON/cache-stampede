@@ -9,7 +9,7 @@ const serialize = d => {
     cs_expiryTime: d.expiryTime
   };
   if (d.data !== undefined)
-    d.cs_data = d.data;
+    data.cs_data = d.data;
   if (String(d.info) === '[object Object]')
     Object.keys(d.info||{}).forEach(key => data['cs_info_'+key] = d.info[key]);
   else if (d.info)
