@@ -1,6 +1,6 @@
 {
   "name": "cache-stampede",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
