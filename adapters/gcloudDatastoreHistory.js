@@ -33,7 +33,7 @@ module.exports = function(client,prefix) {
         .hasAncestor(client.key([prefix,key]))
         .order('updated', { descending: true });
       return client.runQuery(query)
-        .then(d => [].concat(d && d[0]).map(deSerialize));
+        .then(d => [].concat(d && d[0]).map(d => deSerialize(d.d)));
     },
 
     insert : function(key,d) {
