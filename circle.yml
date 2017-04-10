@@ -17,8 +17,13 @@ machine:
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local:
         background: true
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init > $HOME/datastoreenv;
+
 test:
+  pre:
+    - |
+      $(cat $HOME/datastoreenv)
+      sudo /opt/google-cloud-sdk/bin/gcloud datastore create-indexes test/datastore_schema/index.yaml
   override:
     - |
-      cat $HOME/datastoreenv && $(cat $HOME/datastoreenv)
-      npm t
+      $(cat $HOME/datastoreenv)
+      cat $HOME/datastoreenv && npm t
