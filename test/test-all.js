@@ -64,6 +64,8 @@ var caches = {
 
   gcloudDatastore : () => stampede.gcloudDatastore(gcloudDatastore),
 
+  gcloudDatastoreHistory : () => stampede.gcloudDatastoreHistory(gcloudDatastore),
+
   file : () => stampede.file(path.join(__dirname,'filecache'))
 };
 
