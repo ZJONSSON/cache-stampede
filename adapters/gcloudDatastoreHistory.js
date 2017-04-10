@@ -41,7 +41,7 @@ module.exports = function(client,prefix) {
       d.updated = new Date();
       d = serialize(d);
       var query = {
-        key: client.key([prefix,key,'updated',d.updated]),
+        key: client.key([prefix,key,'updated',String(d.updated)]),
         data: { d: d }
       };
       const transaction = client.transaction();
