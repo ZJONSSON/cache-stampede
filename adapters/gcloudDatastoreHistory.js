@@ -59,8 +59,8 @@ module.exports = function(client,prefix) {
         });
     },
 
-    update : function(key,d) {
-      return this.insert.apply(this, ...arguments);
+    update : function() {
+      return this.insert.apply(this, [...arguments]);
     },
 
     remove : function(key) {
