@@ -20,7 +20,8 @@ machine:
 
 test:
   pre:
-    - > sudo
+    - >
+      sudo
       $(cat $HOME/datastoreenv)
       CLOUDSDK_CORE_PROJECT=local
       /opt/google-cloud-sdk/bin/gcloud datastore create-indexes test/datastore_schema/index.yaml
