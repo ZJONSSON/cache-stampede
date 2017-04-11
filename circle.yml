@@ -7,26 +7,19 @@ machine:
     _JAVA_OPTIONS: "-Xms512m -Xmx1024m"
   java:
     version: openjdk7
-  post:
+
+test:
+  pre:
     - curl -k -L -o dynamodb-local.tgz http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
     - tar -xzf dynamodb-local.tgz
     - java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb:
         background: true
     - echo -e "testid\ntestkey\nus-east-1\njson" | aws configure
+    - mkdir datastore_data; cp test/datastore_schema/index.yaml datastore_data/
     - echo -e "Y\n" | sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init --quiet || true
-    - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local:
+    - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local --data-dir datastore_data:
         background: true
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init > $HOME/datastoreenv;
-
-test:
-  pre:
-    - >
-      sudo bash -c '
-        $(cat $HOME/datastoreenv) &&
-        export CLOUDSDK_CORE_PROJECT=local &&
-        export GCLOUD_KEYFILE_JSON=$(cat test/datastore_schema/keyfile.json) &&
-        echo -e "Y\n" | /opt/google-cloud-sdk/bin/gcloud datastore create-indexes test/datastore_schema/index.yaml
-      '
   override:
     - |
       $(cat $HOME/datastoreenv)
