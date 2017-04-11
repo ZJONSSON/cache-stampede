@@ -15,7 +15,7 @@ test:
     - java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb:
         background: true
     - echo -e "testid\ntestkey\nus-east-1\njson" | aws configure
-    - mkdir datastore_data; cp test/datastore_schema/index.yaml datastore_data/
+    - mkdir datastore_data; cp test/datastore_schema/{index,env}.yaml datastore_data/
     - echo -e "Y\n" | sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init --quiet || true
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local --data-dir datastore_data:
         background: true
