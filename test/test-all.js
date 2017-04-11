@@ -9,12 +9,7 @@ var fs = require('fs'),
     gcloudDatastore = require('@google-cloud/datastore')({
       projectId: process.env.DATASTORE_PROJECT_ID,
       promise: Promise,
-      credentials: {
-        "type": "service_account",
-        "project_id": "local",
-        "client_email": "555-compute@developer.gserviceaccount.com",
-        "client_id": "555"
-      }
+      credentials: require('./datastore_schema/keyfile')
     });
 
 Promise.promisifyAll(mongodb.MongoClient);

@@ -1,0 +1,6 @@
+{
+	"type": "service_account",
+	"project_id": "local",
+  "client_email": "555-compute@developer.gserviceaccount.com",
+  "client_id": "555"
+}
