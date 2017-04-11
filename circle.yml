@@ -20,8 +20,10 @@ machine:
 
 test:
   pre:
-    - |
-      $(cat $HOME/datastoreenv) && export CLOUDSDK_CORE_PROJECT=local
+    - >
+      $(cat $HOME/datastoreenv)
+      CLOUDSDK_CORE_PROJECT=local
+      GCLOUD_KEYFILE_JSON=$(cat test/datastore_schema/keyfile.json)
       sudo /opt/google-cloud-sdk/bin/gcloud datastore create-indexes test/datastore_schema/index.yaml
   override:
     - |
