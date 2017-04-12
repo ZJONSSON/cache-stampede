@@ -43,7 +43,8 @@ module.exports = function(client,prefix) {
         })
         .catch(err => {
           return transaction.rollback()
-            .then(() => { throw err });
+            .catch(() => {})
+            .then(() => { throw err; });
         });
     },
 
