@@ -1,7 +1,15 @@
 const serialize = d => {
-  const data = Object.assign({}, d);
+  let data = Object.assign({}, d);
   data.caching = data.__caching__;
   delete data.__caching__;
+  data = Object.keys(data).reduce((o,d) => {
+    if (data[d] === undefined) return o;
+    let prop = { name: d, value: data[d] };
+    if (d === 'data')
+      prop.excludeFromIndexes = true;
+    o = o.concat(prop);
+    return o;
+  }, []);
   return data;
 };
 
@@ -22,7 +30,7 @@ module.exports = function(client,prefix) {
     get : function(key,options) {
       var query = client.key([prefix,key]);
       return client.get(query)
-        .then(d => deSerialize(d && d[0] && d[0].d));
+        .then(d => deSerialize(d && d[0]));
     },
 
     insert : function(key,d) {
@@ -30,7 +38,7 @@ module.exports = function(client,prefix) {
       d = serialize(d);
       var query = {
         key: client.key([prefix,key]),
-        data: { d: d }
+        data: d
       };
       const transaction = client.transaction();
       return transaction.run()
@@ -52,7 +60,7 @@ module.exports = function(client,prefix) {
       d = serialize(d);
       var query = {
         key: client.key([prefix,key]),
-        data: { d: d }
+        data: d
       };
       return client.update(query);
     },
