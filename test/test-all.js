@@ -9,12 +9,7 @@ var fs = require('fs'),
     gcloudDatastore = require('@google-cloud/datastore')({
       projectId: process.env.DATASTORE_PROJECT_ID,
       promise: Promise,
-      credentials: {
-        "type": "service_account",
-        "project_id": "local",
-        "client_email": "555-compute@developer.gserviceaccount.com",
-        "client_id": "555"
-      }
+      credentials: require('./datastore_schema/keyfile')
     });
 
 Promise.promisifyAll(mongodb.MongoClient);
@@ -63,6 +58,8 @@ var caches = {
   dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
 
   gcloudDatastore : () => stampede.gcloudDatastore(gcloudDatastore),
+
+  gcloudDatastoreHistory : () => stampede.gcloudDatastoreHistory(gcloudDatastore),
 
   file : () => stampede.file(path.join(__dirname,'filecache'))
 };

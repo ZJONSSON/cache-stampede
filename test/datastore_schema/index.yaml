@@ -1,0 +1,9 @@
+# unfortunately must be index.yaml to be used with create-indexes
+
+indexes:
+
+- kind: cache
+  ancestor: yes
+  properties:
+  - name: updated
+    direction: desc

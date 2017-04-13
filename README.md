@@ -4,16 +4,18 @@ Most caching libraries do not place a variable into cache until its value has be
 In `cache-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
 
 ## Initialization
-Four basic database adapters are provided.
+Basic database adapters are provided.
 * `require('cache-stampede').mongo(mongo_collection_object,[options])`  - Legacy promisification by bluebird
 * `require('cache-stampede').mongodb(mongo_collection_object,[options])`  - Uses mongodb 2.1.x internal promises
 * `require('cache-stampede').mongoHistory(mongo_collection_object,[options])`  - Retains history instead of purging
 * `require('cache-stampede').mongoose(collection_name,[options])`
 * `require('cache-stampede').redis(redis_client,[options])`
 * `require('cache-stampede').dynamodb(aws_client,[options])`
+* `require('cache-stampede').gcloudDatastore(gcloud_datastore_client,[options])`
+* `require('cache-stampede').gcloudDatastoreHistory(gcloud_datastore_client,[options])`
 * `require('cache-stampede').file(directory,[options])`
 
-The relevant database libraries (mongo, mongodb, mongoose, redis and dynamodb) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` and `mongodb` adapters allows you to specify the collection as a promise to deliver a collection object (optional).
+The relevant database libraries (mongo, mongodb, mongoose, redis, dynamodb, and gcloud datastore) are only included as dev depdencies and are not installed through regular npm install.  You only need to install them if you want to run tests (mocha).  You can specify the particular `mongoose` object you want to use, as a property `mongoose` in `options`.  The file adapter maintains a list of files (named by the respective keys) the specified directory and does not require any third party database servers.  The `mongo` and `mongodb` adapters allows you to specify the collection as a promise to deliver a collection object (optional).
 
 A special adapter called `mongoHistory` retains historical cached values in the collection instead of deleting them. The adapter defines a custom method `getHistory` that returns all records for a particular key.
 
