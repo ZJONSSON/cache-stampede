@@ -21,6 +21,27 @@ const deSerialize = d => {
   return data;
 };
 
+const retry = fn => {
+  const maxTries = 5;
+  let currentAttempt = 1;
+  let delay = 100;
+  return (function tryRetry() {
+    return fn()
+      .catch(err => {
+        if (err && err.message === 'KEY_EXISTS') throw err;
+        if (currentAttempt > maxTries)
+          return Promise.reject(err);
+        // Use exponential backoff
+        return Promise.delay(delay)
+          .then(() => {
+            currentAttempt++;
+            delay *= 2;
+            return tryRetry();
+          });
+      });
+  })();
+};
+
 const Promise = require('bluebird');
 
 module.exports = function(client,prefix) {  
@@ -29,8 +50,10 @@ module.exports = function(client,prefix) {
 
     get : function(key,options) {
       var query = client.key([prefix,key]);
-      return client.get(query)
-        .then(d => deSerialize(d && d[0]));
+      return retry(() => {
+        return client.get(query)
+          .then(d => deSerialize(d && d[0]));
+      });
     },
 
     insert : function(key,d) {
@@ -40,20 +63,22 @@ module.exports = function(client,prefix) {
         key: client.key([prefix,key]),
         data: d
       };
-      const transaction = client.transaction();
-      return transaction.run()
-        .then(() => transaction.get(query.key))
-        .then(results => {
-          if (results[0])
-            throw new Error('KEY_EXISTS');
-          transaction.save(query);
-          return transaction.commit();
-        })
-        .catch(err => {
-          return transaction.rollback()
-            .catch(() => {})
-            .then(() => { throw err; });
-        });
+      return retry(() => {
+        const transaction = client.transaction();
+        return transaction.run()
+          .then(() => transaction.get(query.key))
+          .then(results => {
+            if (results[0])
+              throw new Error('KEY_EXISTS');
+            transaction.save(query);
+            return transaction.commit();
+          })
+          .catch(err => {
+            return transaction.rollback()
+              .catch(() => {})
+              .then(() => { throw err; });
+          });
+      });
     },
 
     update : function(key,d) {
@@ -63,12 +88,16 @@ module.exports = function(client,prefix) {
         key: client.key([prefix,key]),
         data: d
       };
-      return client.update(query);
+      return retry(() => {
+        return client.update(query);
+      });
     },
 
     remove : function(key) {
       var query = client.key([prefix,key]);
-      return client.delete(query);
+      return retry(() => {
+        return client.delete(query);
+      });
     }
 
   };
