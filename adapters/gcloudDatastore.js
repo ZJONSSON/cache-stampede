@@ -42,7 +42,11 @@ module.exports = function(client,prefix) {
       };
       const transaction = client.transaction();
       return transaction.run()
-        .then(() => transaction.get(query.key))
+        .then(() => transaction.createQuery(prefix)
+          .filter('__key__','=',query.key)
+          .select('__key__')
+          .limit(1)
+          .run())
         .then(results => {
           if (results[0])
             throw new Error('KEY_EXISTS');
