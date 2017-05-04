@@ -17,8 +17,8 @@
     "clues": "~3.5.15"
   },
   "devDependencies": {
+    "@google-cloud/datastore": "1.0.1",
     "aws-sdk": "^2.12.0",
-    "@google-cloud/datastore": "^0.7.0",
     "mocha": "~3.0.2",
     "mongodb": "^2.2.11",
     "mongoose": "~4.6.4",

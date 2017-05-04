@@ -5,7 +5,8 @@ var fs = require('fs'),
     Promise = require('bluebird'),
     mongoose = require('mongoose'),
     AWS = require('aws-sdk'),
-    dynamodbSchema = require('./dynamodb_schema');
+    redis = require('redis').createClient(),
+    dynamodbSchema = require('./dynamodb_schema'),
     gcloudDatastore = require('@google-cloud/datastore')({
       projectId: process.env.DATASTORE_PROJECT_ID,
       promise: Promise,
@@ -55,14 +56,11 @@ var caches = {
 
   mongoose : () =>  stampede.mongoose('stampede_tests',{mongoose:mongoose}),
 
-  redis : () => stampede.redis(
-    require('redis')
-      .createClient()
-  ),
+  redis : () => stampede.redis(redis),
 
   dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
 
-  gcloudDatastore : () => stampede.gcloudDatastore(gcloudDatastore),
+  gcloudDatastore : () => stampede.gcloudDatastore(gcloudDatastore,redis),
 
   file : () => stampede.file(path.join(__dirname,'filecache'))
 };
