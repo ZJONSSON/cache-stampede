@@ -65,12 +65,14 @@ module.exports = function(datastoreClient,redisClient,prefix) {
     },
 
     // insert only redis
-    insert : function(key,d) {
+    insert : function(key,d,expiry) {
+      expiry = expiry || 1000 * 60 * 2; // 2min default lock expiry
       return redisClient.setnxAsync(key,JSON.stringify(d))
         .then(d => {
           if (!d) throw new Error('KEY_EXISTS');
           return d; 
-        });
+        })
+        .tap(() => expiry && redisClient.expireAsync(key,expiryToSeconds(expiry)));
     },
 
     // update just datastore
