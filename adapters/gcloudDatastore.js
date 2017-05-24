@@ -48,7 +48,9 @@ const deSerialize = d => {
 
 const Promise = require('bluebird');
 
-module.exports = function(datastoreClient,redisClient,prefix) {  
+module.exports = function(clients,prefix) {
+  let datastoreClient = clients[0];
+  let redisClient = clients[1];
   Promise.promisifyAll(redisClient);
   prefix = prefix || 'cache';
   return {
