@@ -17,6 +17,7 @@ machine:
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local:
         background: true
     - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init > $HOME/datastoreenv;
+    - mv coverage/lcov-report $CIRCLE_ARTIFACTS/coverage
 test:
   override:
     - |
