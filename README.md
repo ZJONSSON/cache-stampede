@@ -3,6 +3,9 @@ Most caching libraries do not place a variable into cache until its value has be
 
 In `cache-stampede`, the first request to see an empty cache results for a particular key will immediately register the key in the cache as `{__caching__ : true }` and move on the resolve the results.  When the variable has been resolved the cache is updated with the results.  Any subsequent request that see the variable as  `{__caching__ : true} ` will wait for  `retryDelay ` milliseconds and then try polling the cache again (until `maxRetries` have been made).
 
+## Breaking changes between 7.x and 8.x
+Clues handler has been changed.  Instead of having to specify `{clues: true}` any supplied function will be resolved through `clues` and will resolve any arguments if proper context is defined (see below)
+
 ## Initialization
 Four basic database adapters are provided.
 * `require('cache-stampede').mongo(mongo_collection_object,[options])`  - Legacy promisification by bluebird
@@ -61,7 +64,7 @@ If you specify `compression` as true the data will be deflated into a base64 str
 When processing bulk-data it is often conventient to load data in bulk from cache as well.  By defining an object `perCache` in options you can supply any known information to avoid repeat calls to the db.  If a any requested key is found in `preCache` it is simply returned, otherwise the regular caching mechanism applies.   The objects in `preCache` need to adhere to the `cache-stampede` storage specification, i.e. the data should be under property `data`.
 
 #### clues resolution
-If you specify `clues: true` in options of either `.cached` or `.set` method,  the function supplied function will be returned to be resolved by [clues](https://github.com/ZJONSSON/clues) in the same `this` context as there the method was called.  It is important to `return` the cache-method so that the resolution machine can evaluate the formula that gets returned (see test/clues-test.js).  Failure to do so will result in an orphan record that will remain in `__caching__` state.
+The function supplied will resolved through clues. If the function has no arguments, then clues will just return a promise to the results of the function.  However if the function contains arguments, they will be resolved from the supplied context prior to the function execution.  Context can be defined as either `context` in `options` or defining the function as an array-based-function with the first argument as context.
 
 #### Where do errors go?
 The default behaviour is to **not** cache errors. However, if any error object has a property `cache` set to `true`, then `cache-stampede` will save that error to cache and return it as rejected promise when it's requested again.  This can be very handy when you know an error represent an irrevocable state for a particular key.

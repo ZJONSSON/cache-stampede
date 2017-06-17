@@ -26,20 +26,22 @@ module.exports = async function(t,cache) {
 
 
     t.test('formula w/o arguments', async t => {
+
       const logic = {
-        value: () => cache.cached('clues-testkey2',function() { return 42;},{clues: true})
+        value: () => cache.cached('clues-testkey2',function() { return 42;},{context: logic})
       };
 
       t.same(await clues(logic,'value'),42,'is cached');
     });
 
     t.test('formula w/arguments', async t => {
+
       const logic = {
         a : () => 41,
-        value: () => cache.cached('clues-testkey3',function(a) { return a+1;},{clues: true})
+        value: () => cache.cached('clues-testkey3',function(a) { return a+1;},{context: logic})
       };
 
-      t.same(await clues(logic,'value'),42,'is cached');
+      t.same(await logic.value(),42,'is cached');
     });
 
 
@@ -47,10 +49,10 @@ module.exports = async function(t,cache) {
 
       const logic = {
         a: 41,
-        value: () => cache.cached('clues-testkey4',['a',function(d) { return d+1;}],{clues: true})
+        value: () => cache.cached('clues-testkey4',[logic,'a',function(d) { return d+1;}])
       };
 
-      t.same(await clues(logic,'value'),42,'is cached');
+      t.same(await logic.value(),42,'is cached');
     });
 
 
@@ -58,10 +60,10 @@ module.exports = async function(t,cache) {
       
       const logic = {
         a: () => { throw 'FAILS';},
-        value: () => cache.cached('clues-testkey5',function(a) { return a;},{clues: true})
+        value: () => cache.cached('clues-testkey5',[logic,function(a) { return a;}])
       };
 
-      const e = await clues(logic,'value').then(shouldError,Object);
+      const e = await logic.value().then(shouldError,Object);
       t.same(e.message,'FAILS','should return as rejection');
     });
   });

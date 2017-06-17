@@ -1,4 +1,5 @@
 const Promise = require('bluebird');
+const clues = require('clues');
 const crypto = require('crypto');
 const zlib = require('zlib');
 Promise.promisifyAll(zlib);
@@ -55,10 +56,15 @@ Stampede.prototype.get = function(key,options,retry) {
       }
 
       if (d.compressed) {
-        d.data = zlib.inflateAsync(d.data).then(JSON.parse);
+        return zlib.inflateAsync(d.data)
+          .then(data => {
+            d.data = JSON.parse(data);
+            return d;
+          });
+      } else {
+        return d;
       }
-
-      return Promise.props(d);
+      
     })
     .then(d => {
       if (d.encrypted) {
@@ -73,6 +79,7 @@ Stampede.prototype.get = function(key,options,retry) {
 };
 
 Stampede.prototype.set = function(key,fn,options) {
+  let raw_data;
   options = options || {};
 
   const payload = {
@@ -87,9 +94,9 @@ Stampede.prototype.set = function(key,fn,options) {
 
   return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
     .then(() => {
-      const finalize = d => {
-        let raw_data;
-        return Promise.resolve(d)
+      if (typeof fn === 'function' || (fn && fn.length && typeof fn[fn.length-1] === 'function'))
+        return clues(options.context || {},fn,options.global ||  {},'stampede',options.fullref)
+          // We capture any errors from functions executed to see if they should be cached
           .catch(e => {
             if (typeof e === 'string') e = {message:e};
             // If the error is to be cached we transform into a JSON object
@@ -102,48 +109,38 @@ Stampede.prototype.set = function(key,fn,options) {
             // Otherwise we remove the key and throw directly
             else return this.adapter.remove(key)
               .then(() => { throw e; });
-          })
-          // Optional compression
-          .then(d => {
-            raw_data = d;
-            // Optional encryption
-            const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
-            if (passphrase) {
-              payload.encrypted = true;
-              d = this.encrypt(d,passphrase);
-            } 
-
-            // Optional compression
-            const compressed = options.compressed !== undefined ? options.compressed : this.compressed;
-            if (compressed) {
-              payload.compressed = true;
-              return zlib.deflateAsync(JSON.stringify(d));
-            }
-            else return d;
-          })
-          
-          .then(d => {
-            payload.data = d;
-            payload.__caching__ = false;
-            if (d && d.error) payload.error = true;
-            return this.adapter.update(key,payload,expiry);
-          })
-          .then(() => {
-            payload.data = raw_data;
-            if (payload.error) throw payload.data;
-            else return options.payload ? payload : payload.data;
           });
-      };
+      else
+        return Promise.resolve(fn);
+    })
+    // Optional compression
+    .then(d => {
+      raw_data = d;
+      // Optional encryption
+      const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
+      if (passphrase) {
+        payload.encrypted = true;
+        d = this.encrypt(d,passphrase);
+      } 
 
-      if (options.clues) {
-        return [ function $noThrow(_) { return fn; }, function(value) {
-          if (value.error)
-            value = Promise.reject(value);
-          return finalize(value);
-        }];
-      } else {
-        return finalize(Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn));
+      // Optional compression
+      const compressed = options.compressed !== undefined ? options.compressed : this.compressed;
+      if (compressed) {
+        payload.compressed = true;
+        return zlib.deflateAsync(JSON.stringify(d));
       }
+      else return d;
+    })
+    .then(d => {
+      payload.data = d;
+      payload.__caching__ = false;
+      if (d && d.error) payload.error = true;
+      return this.adapter.update(key,payload,expiry);
+    })
+    .then(() => {
+      payload.data = raw_data;
+      if (payload.error) throw payload.data;
+      else return options.payload ? payload : payload.data;
     });
 };
 
