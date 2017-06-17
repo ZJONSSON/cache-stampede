@@ -4,7 +4,7 @@
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "tap test/index.js --jobs=10 -Rspec --coverage-report=html --no-browser"
   },
   "author": "Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com> (https://github.com/zjonsson/)",
   "repository": {
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@google-cloud/datastore": "1.0.1",
     "aws-sdk": "^2.12.0",
-    "mocha": "~3.0.2",
+    "tap": "~10.3.2",
     "mongodb": "^2.2.11",
     "mongoose": "~4.6.4",
     "redis": "~2.6.2"

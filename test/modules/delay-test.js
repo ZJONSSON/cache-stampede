@@ -1,73 +1,57 @@
-var Promise = require('bluebird'),
-    assert = require('assert');
+const Promise = require('bluebird');
 
 function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
-module.exports = function() {
-  var result = 'This is the result of the delay test';
+module.exports = async function(t,cache) {
+  t.test('When fn is async', async function() {
+    const result = 'This is the result of the delay test';
 
-  function testFn() {
-    return Promise.delay(600)
-      .then(function() {
-        return result;
-      });
-  }
+    async function testFn() {
+      await Promise.delay(600);
+      return result;
+    }
 
-  before(function() {
-    return Promise.all([
-      this.cache.adapter.remove('delay-testkey',{all: true}),
-      this.cache.adapter.remove('delay-testkey2',{all: true}),
-      this.cache.adapter.remove('delay-testkey3',{all: true})
+    await Promise.all([
+      cache.adapter.remove('delay-testkey',{all: true}),
+      cache.adapter.remove('delay-testkey2',{all: true}),
+      cache.adapter.remove('delay-testkey3',{all: true})
     ]);
-  });
 
-  describe('When fn is async',function() {
-    it('`set` should error when db is __caching__',function() {
-      var self = this;
-      this.cache.cached('delay-testkey',testFn,{info:'TEST'});
+  
+    t.test('when fn is running', async t => {
+      cache.cached('delay-testkey',testFn,{info:'TEST'});
+      await Promise.delay(10);
+      const e = await cache.set('delay-testkey',function() { return 'New Value'; }).then(shouldError,Object);
+      t.same(e.message,'KEY_EXISTS','`set` should error when db is __caching__');
 
-      return Promise.delay(10)
-        .then(function() {
-          return self.cache.set('delay-testkey',function() { return 'New Value'; })
-            .then(shouldError,errorMsg('KEY_EXISTS'));
-        });
+      const d = await cache.info('delay-testkey');
+      t.same(d,'TEST','cache responds to `info` while fn running');
+      
     });
 
-    it('cache responds to `info` while fn running',function() {
-      return this.cache.info('delay-testkey')
-        .then(shouldEqual('TEST'));
+    t.test('after running', async t => {
+      const d = await cache.cached('delay-testkey',function() { throw 'Should not run';},{maxRetries:6});
+      t.same(d,result,'rerunning should wait for cached results');
+
+      const i = await cache.info('delay-testkey');
+      t.same(i,'TEST','cache responds to `info` while fn running');
     });
 
-    it('re-running should wait for cached results',function() {
-      return this.cache.cached('delay-testkey',function() { throw 'Should not run';},{maxRetries:6})
-        .then(shouldEqual(result));
-    });
 
-    it('return the request info after running',function() {
-      return this.cache.info('delay-testkey')
-        .then(shouldEqual('TEST'));
+    t.test('re-run with too short retry', async t => {
+      cache.cached('delay-testkey3',testFn);
+      await  Promise.delay(10);
+      const e = await cache.cached('delay-testkey3',testFn,{maxRetries:1}).then(shouldError,Object);
+      t.equal(e.message,'MAXIMUM_RETRIES','fails on MAXIMUM_RETRIES');
     });
-
-    it('re-running with zero delay should fail MAXIMUM_RETRIES',function() {
-      var self = this;
-      this.cache.cached('delay-testkey2',testFn);
-      return Promise.delay(50)
-        .then(function() {
-          return self.cache.cached('delay-testkey2',testFn,{retryDelay:0});
-        })      
-        .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
-    });
-
-    it('rerunning with only one retry should fail',function() {
-      var self = this;
-      this.cache.cached('delay-testkey3',testFn);
-      return Promise.delay(50)
-        .then(function() {
-          return self.cache.cached('delay-testkey3',testFn,{maxRetries:1});
-        })
-        .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
-    });
+    t.end();
   });
 };
+
+if (!module.parent) {
+  const stampede = require('../../index');
+  const path = require('path');
+  const cache =  stampede.file(path.join(__dirname,'..','filecache'));
+  const t = require('tap');
+  module.exports(t,cache);
+}

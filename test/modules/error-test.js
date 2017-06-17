@@ -1,46 +1,44 @@
-var assert = require('assert'),
-    Promise = require('bluebird');
+const Promise = require('bluebird');
 
-function shouldNotRun() { throw 'Should not run';}
 function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
-module.exports = function() {
+module.exports = async function(t,cache) {
 
-  function testFn() {
-    return Promise.delay(500)
-      .then(function() {
-        throw 'Error';
-      });
+  async function testFn() {
+    await Promise.delay(500);
+    throw 'Error';
   }
 
-  before(function() {
-    return Promise.all([
-      this.cache.adapter.remove('error-testkey',{all: true}),
-      this.cache.adapter.remove('error-testkey2',{all: true})
-    ]);
-  });
+  await Promise.all([
+    cache.adapter.remove('error-testkey',{all: true}),
+    cache.adapter.remove('error-testkey2',{all: true})
+  ]);
 
-  describe('Function with non-caching error',function() {
-    it('`set` should fail when db is still __caching__',function() {
-      var self = this;
-      self.cache.cached('error-testkey',testFn).catch(Object);
-      return Promise.delay(50)
-        .then(function() {
-          return self.cache.set('error-testkey',function() { return 'New Value'; })
-            .then(shouldError,errorMsg('KEY_EXISTS'));
-        });
+  t.test('Function with non-caching error', async t => {
+
+    t.test('while db is still __cachine__', async t => {
+      cache.cached('error-testkey',testFn).catch(Object);
+      await  Promise.delay(50);
+      const e = await cache.set('error-testkey',function() { return 'New Value'; }).then(shouldError,Object);
+      t.same(e.message,'KEY_EXISTS','`set` should fail');
     });
 
-    it('`cached` should return the correct error',function() {
-      return this.cache.cached('error-testkey2',testFn)
-        .then(shouldError,errorMsg('Error'));
+    t.test('__cached___', async t => {
+      const e = await cache.cached('error-testkey2',testFn).then(shouldError,Object);
+      t.same(e.message,'Error','returns the correct error');
     });
 
-    it('`get` should show that error was not cached',function() {
-      return this.cache.get('error-testkey2')
-        .then(shouldError,errorMsg('KEY_NOT_FOUND'));
+    t.test('`get`', async t => {
+      const e = await cache.get('error-testkey2').then(shouldError,Object);
+      t.same(e.message,'KEY_NOT_FOUND','`get` should show that error was not cached');
     });
   });
 };
+
+if (!module.parent) {
+  const stampede = require('../../index');
+  const path = require('path');
+  const cache =  stampede.file(path.join(__dirname,'..','filecache'));
+  const t = require('tap');
+  module.exports(t,cache);
+}

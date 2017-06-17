@@ -1,115 +1,76 @@
-var assert = require('assert'),
-    Promise = require('bluebird'),
-    clues = require('clues');
+const Promise = require('bluebird');
+const clues = require('clues');
 
-function shouldNotRun() { throw 'Should not run';}
 function shouldError() { throw 'Should have errored';}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
-module.exports = function() {
-  function testFn() {
-    return Promise.delay(500)
-      .then(function() {
-        throw {message:'Error',cache:true};
-      });
-  }
+module.exports = async function(t,cache) {
 
-  before(function() {
-    this.cache.clues = true;
-    return Promise.all([
-      this.cache.adapter.remove('clues-testkey',{all: true}),
-      this.cache.adapter.remove('clues-testkey2',{all: true}),
-      this.cache.adapter.remove('clues-testkey3',{all: true}),
-      this.cache.adapter.remove('clues-testkey4',{all: true}),
-      this.cache.adapter.remove('clues-testkey5',{all: true})
-    ]);
-  });
+  cache.clues = true;
 
-  describe('Clues formula',function() {
+  await Promise.all([
+    cache.adapter.remove('clues-testkey',{all: true}),
+    cache.adapter.remove('clues-testkey2',{all: true}),
+    cache.adapter.remove('clues-testkey3',{all: true}),
+    cache.adapter.remove('clues-testkey4',{all: true}),
+    cache.adapter.remove('clues-testkey5',{all: true})
+  ]);
 
-    /*it('regular formula returns value',function() {
-      var self = this;
-      var logic = {
-        value: function() {
-          return self.cache.cached('clues-testkey',function() { return 42;});
-        }
-      };
-      return clues(logic,'value').then(console.log)
-    });*/
+  t.test('Clues formula', {autoend: true}, async t => {
+    t.test('with value', async t => {
+      
+      const logic = { value: () => cache.cached('clues-testkey',42) };
 
-
-    it('works for value',function() {
-      var self = this;
-      var logic = {
-        value: function() {
-          return self.cache.cached('clues-testkey',42);
-        }
-      };
-      return clues(logic,'value')
-        .then(function(d) {
-          assert.equal(d,42);
-        },shouldError);
-
+      const d = await clues(logic,'value');
+      t.same(d,42,'is cached');
     });
 
 
-    it('works for formula w/o arguments',function() {
-      var self = this;
-      var logic = {
-        value: function() {
-          return self.cache.cached('clues-testkey2',function() { return 42;},{clues: true});
-        }
+    t.test('formula w/o arguments', async t => {
+      const logic = {
+        value: () => cache.cached('clues-testkey2',function() { return 42;},{clues: true})
       };
-      return clues(logic,'value')
-        .then(function(d) {
-          assert.equal(d,42);
-        },shouldError);
 
+      t.same(await clues(logic,'value'),42,'is cached');
     });
 
-    it('works for formula w/arguments',function() {
-      var self = this;
-      var logic = {
-        a : function() {
-          return 41;
-        },
-        value: function() {
-          return self.cache.cached('clues-testkey3',function(a) { return a+1;},{clues: true});
-        }
+    t.test('formula w/arguments', async t => {
+      const logic = {
+        a : () => 41,
+        value: () => cache.cached('clues-testkey3',function(a) { return a+1;},{clues: true})
       };
-      return clues(logic,'value')
-        .then(function(d) {
-          assert.equal(d,42);
-        },shouldError);
+
+      t.same(await clues(logic,'value'),42,'is cached');
     });
 
 
-    it('works for array-defined-formula',function() {
-      var self = this;
-      var logic = {
+    t.test('works for array-defined-formula', async t => {
+
+      const logic = {
         a: 41,
-        value: function() {
-          return self.cache.cached('clues-testkey4',['a',function(d) { return d+1;}],{clues: true});
-        }
+        value: () => cache.cached('clues-testkey4',['a',function(d) { return d+1;}],{clues: true})
       };
-      return clues(logic,'value')
-        .then(function(d) {
-          assert.equal(d,42);
-        },shouldError);
+
+      t.same(await clues(logic,'value'),42,'is cached');
     });
 
 
-    it('should return error as rejection',function() {
-      var self = this;
-      var logic = {
-        a: function() { throw 'FAILS';},
-        value: function() {
-          return self.cache.cached('clues-testkey5',function(a) { return a;},{clues: true});
-        }
+    t.test('error', async t => {
+      
+      const logic = {
+        a: () => { throw 'FAILS';},
+        value: () => cache.cached('clues-testkey5',function(a) { return a;},{clues: true})
       };
-      return clues(logic,'value').then(shouldError,function(e) {
-        assert.equal(e.message,'FAILS');
-      });
+
+      const e = await clues(logic,'value').then(shouldError,Object);
+      t.same(e.message,'FAILS','should return as rejection');
     });
   });
 };
+
+if (!module.parent) {
+  const stampede = require('../../index');
+  const path = require('path');
+  const cache =  stampede.file(path.join(__dirname,'..','filecache'));
+  const t = require('tap');
+  module.exports(t,cache);
+}

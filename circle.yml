@@ -2,7 +2,7 @@ machine:
   services:
     - redis
   node:
-    version: 6.9.5
+    version: 7
   environment:
     _JAVA_OPTIONS: "-Xms512m -Xmx1024m"
   java:
@@ -22,3 +22,5 @@ test:
     - |
       cat $HOME/datastoreenv && $(cat $HOME/datastoreenv)
       npm t
+  post:
+    - mv coverage/lcov-report $CIRCLE_ARTIFACTS/coverage

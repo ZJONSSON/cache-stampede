@@ -1,41 +1,37 @@
-/* jshint mocha:true */
+module.exports = async function(t,cache) {
+  
+  
+  return t.test('history', async t => {
+    await cache.adapter.remove('mongoHistory-test',{all: true});
 
-var assert = require('assert');
-var Promise = require('bluebird');
+    if (!cache.adapter.getHistory) {
+      t.comment(`history not available in adapter ${cache.name}`);
+      return;
+    }
 
-module.exports = function() {
-
-  before(function() {
-    return this.cache.adapter.remove('mongoHistory-test',{all: true});
-  });
-
-  describe('History',function() {
-    it('separate calls with maxage 0 return separate results', function() {
-      if (this.adapterName !== 'mongoHistory') this.skip();
-      var self = this;
-      return self.cache.cached('mongoHistory-test',1,{maxAge:0})
-        .then(function(d) {
-          assert.equal(d,1);
-          return self.cache.cached('mongoHistory-test',2,{maxAge:0});
-        })
-        .then(function(d) {
-          assert.equal(d,2);
-          return self.cache.cached('mongoHistory-test',3,{maxAge:0});
-        })
-        .then(function(d) {
-          assert.equal(d,3);
-        });
+    t.test('searate calls with maxage 0 and different results', async t => {
+      t.same(await cache.cached('mongoHistory-test',1,{maxAge:0}),1,'first ok');
+      t.same(await cache.cached('mongoHistory-test',2,{maxAge:0}),2,'second different');
+      t.same(await cache.cached('mongoHistory-test',3,{maxAge:0}),3,'third different');
     });
 
-    it('getHistory fetches all records',function() {
-      if (this.adapterName !== 'mongoHistory') this.skip();
-      return this.cache.adapter.getHistory('mongoHistory-test')
-        .then(function(d) {
-          d = d.map(function(d) {
-            return d.data;
-          });
-          assert.deepEqual(d,[1,2,3]);
-        });
+    t.test('getHistory', async t => {
+      const d = await cache.adapter.getHistory('mongoHistory-test');
+      t.same(d.map(d => d.data),[1,2,3],'fetches all records');
     });
+    t.end();
   });
 };
+
+if (!module.parent) {
+  (async () => {
+    const stampede = require('../../index');
+    const mongodb = require('mongodb');
+    const db = await mongodb.MongoClient.connect('mongodb://localhost:27017/stampede_tests', {native_parser:true});
+    const collection = db.collection('stampede_tests');
+    const cache =  stampede.mongoHistory(collection);
+    const t = require('tap');
+    await module.exports(t,cache);
+    db.close();
+  })();
+}

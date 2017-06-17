@@ -1,94 +1,80 @@
-var assert = require('assert'),
-    Promise = require('bluebird'),
-    zlib = require('zlib');
-
+const Promise = require('bluebird');
+const zlib = require('zlib');
 Promise.promisifyAll(zlib);
 
-
 function shouldNotRun() { throw 'Should not run';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
 
-module.exports = function() {
-  var result = 'This is the result of the encrypted test';
+module.exports = async function(t,cache) {
+  const result = 'This is the result of the encrypted test';
 
   function testFn() {
     return result;
   }
 
-  before(function() {
-    return Promise.all([
-      this.cache.adapter.remove('compresskey1',{all: true}),
-      this.cache.adapter.remove('compresskey2',{all: true})
-    ]);
-  });
+  await Promise.all([
+    cache.adapter.remove('compresskey1',{all: true}),
+    cache.adapter.remove('compresskey2',{all: true})
+  ]);
 
-  describe('Compressed',function() {
-    it('first `cached` should return output',function() {
-      return this.cache.cached('compresskey1',testFn,{compressed:true})
-        .then(shouldEqual(result));
+  t.test('Compressed', {autoend: true}, t => {
+    t.test('first `cached`', async t => {
+      const d = await cache.cached('compresskey1',testFn,{compressed:true});
+      t.same(d,result,'returns result');
     });
 
-    it('`adapter.get` returns encrypted data',function() {
-      var self = this;
-      return self.cache.adapter.get('compresskey1')
-        .then(function(d) {
-          assert.equal(d.__caching__,false);
-          assert.notEqual(d.data,result);
-
-          return zlib.inflateAsync(d.data).then(d => JSON.parse(d));
-        })
-        .then(shouldEqual(result));
+    t.test('`adapter.get`', async t => {
+      const d = await cache.adapter.get('compresskey1');
+      t.ok(d.data !== result,'encrypted');
+      t.same(d.__caching__,false,'with __caching__ === false');
+      const e = await zlib.inflateAsync(d.data).then(d => JSON.parse(d));
+      t.same(e,result,'results match after encryption');
     });
 
-    it('`cached` should return decrypted cached result',function() {
-      return this.cache.cached('compresskey1',shouldNotRun)
-        .then(shouldEqual(result));
+    t.test('`cached` again', async t => {
+      const d = await cache.cached('compresskey1',shouldNotRun);
+      t.same(d,result,'returns decrypted cached result');
     });
 
-    it('`cached` with payload = true should return payload',function() {
-      return this.cache.cached('compresskey1',shouldNotRun, {payload:true})
-        .then(function(d) {
-          assert.equal(d.compressed,true);
-          return d.data;
-        })
-        .then(shouldEqual(result));
+    t.test('`cached` with payload = true', async t => {
+      const d = await cache.cached('compresskey1',shouldNotRun, {payload:true});
+      t.same(d.compressed,true,'shows compresed === true');
+      t.same(d.data,result,'returns results');
     });
 
-    it('`get` should return decrypted cached result',function() {
-      return this.cache.get('compresskey1')
-        .then(function(d) {
-          assert.equal(d.data,result);
-        });
+    t.test('`get`', async t => {
+      const d = await cache.get('compresskey1');
+      t.same(d.data,result,'returns decrypted cached results');
     });
   });
 
-  describe('Compressed and Encrypted', function() {
-    it('first `cached` should return output',function() {
-      return this.cache.cached('compresskey2',testFn,{compressed:true,passphrase:'abc123'})
-        .then(shouldEqual(result));
+  t.test('Compressed and Encrypted', async t => {
+
+    t.test('first `cached`', async t => {
+      const d = await cache.cached('compresskey2',testFn,{compressed:true,passphrase:'abc123'});
+      t.same(d,result,'returns output');
     });
 
-     it('`adapter.get` returns encrypted data',function() {
-      var self = this;
-      return self.cache.adapter.get('compresskey2')
-        .then(function(d) {
-          assert.equal(d.__caching__,false);
-          assert.notEqual(d.data,result);         
-          return zlib.inflateAsync(d.data)
-            .then(d => {
-              d = d.toString();
-              return self.cache.decrypt(d,'abc123');
-            });
-        })
-        .then(shouldEqual(result));
+    t.test('`get`', async t => {
+      const d = await cache.adapter.get('compresskey2');
+      t.same(d.__caching__,false,'data in no longer marked __caching__');
+
+      const c = await zlib.inflateAsync(d.data);
+      const f = await cache.decrypt(c.toString(),'abc123');
+      t.same(f,result,'data is stored compressed and encrypted');
     });
 
-    it('`cached` should return decrypted cached result',function() {
-      return this.cache.cached('compresskey2',shouldNotRun,{passphrase:'abc123'})
-        .then(shouldEqual(result));
+    t.test('second `cached`',async t => {
+      const d = await cache.cached('compresskey2',shouldNotRun,{passphrase:'abc123'});
+      t.same(d,result,'gets uncompressed and decrypted data from cache');
     });
   });
 };
 
 
-
+if (!module.parent) {
+  const stampede = require('../../index');
+  const path = require('path');
+  const cache =  stampede.file(path.join(__dirname,'..','filecache'));
+  const t = require('tap');
+  module.exports(t,cache);
+}
