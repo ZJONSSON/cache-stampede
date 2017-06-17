@@ -86,6 +86,10 @@ module.exports = function(collection) {
       return collection.then(function(c) {
         return c.removeAsync(criteria);
       });
+    },
+
+    close : function() {
+      return collection.then(c => c.s.db.close());
     }
   };
 };

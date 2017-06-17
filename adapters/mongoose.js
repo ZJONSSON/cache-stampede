@@ -13,5 +13,7 @@ module.exports = function(collection_name,options) {
     },options));
   }
 
-  return mongoAdapter(mongoose.models[collection_name].collection);
+  const adapter = mongoAdapter(mongoose.models[collection_name].collection);
+  adapter.close = () => mongoose.connection.close();
+  return adapter;
 };

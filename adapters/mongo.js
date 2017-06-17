@@ -53,6 +53,10 @@ module.exports = function(collection) {
       return collection.then(function(c) {
         return c.removeAsync({_id:key});
       });
+    },
+
+    close : function() {
+      return collection.then(c => c.s.db.close());
     }
   };
 };

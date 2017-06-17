@@ -46,6 +46,10 @@ module.exports = function(client,prefix) {
 
     remove : function(key) {
       return client.delAsync(key);
+    },
+
+    close: function() {
+      return client.quit();
     }
 
   };
