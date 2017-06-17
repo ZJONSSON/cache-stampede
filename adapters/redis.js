@@ -1,18 +1,17 @@
-var Promise = require('bluebird');
-var expiryToSeconds = function(ms) {
-  return Math.ceil(ms / 1000)
-};
+const Promise = require('bluebird');
+const expiryToSeconds = ms => Math.ceil(ms / 1000);
+
 
 module.exports = function(client,prefix) {
   Promise.promisifyAll(client);
-  return {
 
+  return {
     get : function(key,options) {
       if (options && options.find)
         throw new Error('options `find` not supported in file adapter');
       
       return client.getAsync(key)
-        .then(function(res) {
+        .then(res => {
           res = JSON.parse(res);
           if (res && res.data && (res.base64 || (res.compressed && typeof res.data === 'string')))
             res.data = new Buffer(res.data,'base64');
@@ -26,11 +25,11 @@ module.exports = function(client,prefix) {
         d.base64 = true;
       }
       return client.setnxAsync(key,JSON.stringify(d))
-        .then(function(d) {
+        .then(d => {
           if (!d) throw new Error('KEY_EXISTS');
           return d;
         })
-        .tap(function(d) {
+        .tap(() => {
           if (expiry) return client.expireAsync(key,expiryToSeconds(expiry));
         });
     },
@@ -40,8 +39,10 @@ module.exports = function(client,prefix) {
         d.data = d.data.toString('base64');
         d.base64 = true;
       }
-      if (expiry) return client.setexAsync(key,expiryToSeconds(expiry),JSON.stringify(d));
-      return client.setAsync(key,JSON.stringify(d));
+      if (expiry)
+        return client.setexAsync(key,expiryToSeconds(expiry),JSON.stringify(d));
+      else
+        return client.setAsync(key,JSON.stringify(d));
     },
 
     remove : function(key) {

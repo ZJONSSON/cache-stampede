@@ -1,7 +1,6 @@
-var Promise = require('bluebird'),
-    crypto = require('crypto'),
-    zlib = require('zlib');
-
+const Promise = require('bluebird');
+const crypto = require('crypto');
+const zlib = require('zlib');
 Promise.promisifyAll(zlib);
 
 function Stampede(options) {
@@ -20,34 +19,31 @@ function Stampede(options) {
 }
 
 Stampede.prototype.get = function(key,options,retry) {
-  var self = this,
-      value;
-
   retry = retry || 0;
   options = options || {};
 
-  var maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries,
-      retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
+  const maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries;
+  const retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
 
   // If we already have the value pre-cached we use it
   if (options.preCache && options.preCache[key] !== undefined)
-    value = Promise.resolve(options.preCache[key]);
+    return Promise.resolve(options.preCache[key]);
 
-  return ( value  || this.adapter.get(key,options))
-    .then(function(d) {
+  return (this.adapter.get(key,options))
+    .then(d => {
       function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
       if (!d) keyNotFound();
 
-      var updated = +(new Date(d.updated)),
-          now = new Date();
+      const updated = +(new Date(d.updated));
+      const now = new Date();
 
-      var expired = d.expiryTime && (now > +d.expiryTime),
-          aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now),
-          retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
+      const expired = d.expiryTime && (now > +d.expiryTime);
+      const aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now);
+      const retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
 
       if (expired || aged || retryExpiry) {
         d = undefined;
-        return self.adapter.remove(key).then(keyNotFound);
+        return this.adapter.remove(key).then(keyNotFound);
       }
 
       if (d.__caching__) {
@@ -55,9 +51,7 @@ Stampede.prototype.get = function(key,options,retry) {
           throw new Error('MAXIMUM_RETRIES');
 
         return Promise.delay(retryDelay)
-          .then(function() {
-            return self.get(key,options,retry);
-          });
+          .then(() => this.get(key,options,retry));
       }
 
       if (d.compressed) {
@@ -66,10 +60,10 @@ Stampede.prototype.get = function(key,options,retry) {
 
       return Promise.props(d);
     })
-    .then(function(d) {
+    .then(d => {
       if (d.encrypted) {
-        var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-        d.data = self.decrypt(d.data,passphrase);
+        const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
+        d.data = this.decrypt(d.data,passphrase);
         d.encrypted = false;
       }
       d.updated = new Date(d.updated);
@@ -81,51 +75,46 @@ Stampede.prototype.get = function(key,options,retry) {
 Stampede.prototype.set = function(key,fn,options) {
   options = options || {};
 
-  var payload = {
-        info : options.info,
-        __caching__ : true,
-        updated : new Date(),
-      },
-      self = this;
+  const payload = {
+    info : options.info,
+    __caching__ : true,
+    updated : new Date(),
+  };
 
-  var expiry = options.expiry || this.expiry;
-  if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
+  const expiry = options.expiry || this.expiry;
+  if (expiry)
+    payload.expiryTime = new Date().valueOf() + expiry;
 
   return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
-    .then(function() {
-
-      function finalize(d) {
-        var raw_data;
+    .then(() => {
+      const finalize = d => {
+        let raw_data;
         return Promise.resolve(d)
-          .catch(function(e) {
+          .catch(e => {
             if (typeof e === 'string') e = {message:e};
             // If the error is to be cached we transform into a JSON object
             if (e && e.cache) {
-              var err = {error: true};
+              let err = {error: true};
               Object.getOwnPropertyNames(e)
-                .forEach(function(key) {
-                  err[key] = e[key];
-                });
+                .forEach(key => err[key] = e[key]);
               return err;
             }
             // Otherwise we remove the key and throw directly
-            else return self.adapter.remove(key)
-              .then(function() {
-                throw e;
-              });
+            else return this.adapter.remove(key)
+              .then(() => { throw e; });
           })
           // Optional compression
-          .then(function(d) {
+          .then(d => {
             raw_data = d;
             // Optional encryption
-            var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
+            const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
             if (passphrase) {
               payload.encrypted = true;
-              d = self.encrypt(d,passphrase);
+              d = this.encrypt(d,passphrase);
             } 
 
             // Optional compression
-            var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
+            const compressed = options.compressed !== undefined ? options.compressed : this.compressed;
             if (compressed) {
               payload.compressed = true;
               return zlib.deflateAsync(JSON.stringify(d));
@@ -133,18 +122,18 @@ Stampede.prototype.set = function(key,fn,options) {
             else return d;
           })
           
-          .then(function(d) {
+          .then(d => {
             payload.data = d;
             payload.__caching__ = false;
             if (d && d.error) payload.error = true;
-            return self.adapter.update(key,payload,expiry);
+            return this.adapter.update(key,payload,expiry);
           })
-          .then(function() {
+          .then(() => {
             payload.data = raw_data;
             if (payload.error) throw payload.data;
             else return options.payload ? payload : payload.data;
           });
-      }
+      };
 
       if (options.clues) {
         return [ function $noThrow(_) { return fn; }, function(value) {
@@ -160,25 +149,19 @@ Stampede.prototype.set = function(key,fn,options) {
 
 Stampede.prototype.info = function(key,options) {
   return this.adapter.get(key,options)
-    .then(function(d) {
-      return d.info;
-    });
+    .then(d => d.info);
 };
 
 Stampede.prototype.cached = function(key,fn,options) {
   options = options || {};
-  var self = this;
-   return this.get(key,options,0)
-    .then(function(d) {
-      return options.payload ? d : d.data;
-    },
-    function(e) {
+  return this.get(key,options,0)
+    .then(d => options.payload ? d : d.data, e => {
       if (e.message === 'KEY_NOT_FOUND') {
-        return self.set(key,fn,options)
-          .catch(function(err) {
+        return this.set(key,fn,options)
+          .catch(err => {
             // If we experienced a race situation we try to get the results
             if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
-              return self.cached(key,fn,options);
+              return this.cached(key,fn,options);
             else
               throw err;
           });
@@ -188,13 +171,13 @@ Stampede.prototype.cached = function(key,fn,options) {
 
 Stampede.prototype.encrypt = function(data,passphrase) {
   if (!passphrase) throw 'MISSING_PASSPHRASE';
-  var cipher = crypto.createCipher(this.algo ,passphrase);
+  const cipher = crypto.createCipher(this.algo ,passphrase);
   return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
 };
 
 Stampede.prototype.decrypt = function(data,passphrase) {
   if (!passphrase) throw 'MISSING_PASSPHRASE';
-  var decipher = crypto.createDecipher(this.algo,passphrase);
+  const decipher = crypto.createDecipher(this.algo,passphrase);
   try {
     return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
   } catch(e) {
