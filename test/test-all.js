@@ -58,9 +58,9 @@ var caches = {
 
   redis : () => stampede.redis(redis),
 
-  dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
+  //dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
 
-  gcloudDatastore : () => stampede.gcloudDatastore([gcloudDatastore,redis]),
+  //gcloudDatastore : () => stampede.gcloudDatastore([gcloudDatastore,redis]),
 
   file : () => stampede.file(path.join(__dirname,'filecache'))
 };
