@@ -2,6 +2,7 @@ var Promise = require('bluebird'),
     crypto = require('crypto'),
     zlib = require('zlib');
 
+Promise.config({ warnings: false});
 Promise.promisifyAll(zlib);
 
 function Stampede(options) {
