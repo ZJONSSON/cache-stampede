@@ -46,6 +46,8 @@ module.exports = function(collection) {
       return collection.then(function(c) {
         return c.remove({_id:key});
       });
-    }
+    },
+
+    close: () => collection.then(d => d.s.db.close())
   };
 };

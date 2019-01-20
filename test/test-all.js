@@ -1,13 +1,80 @@
-var fs = require('fs'),
-    path = require('path'),
-    stampede = require('../index'),
-    mongodb = require('mongodb'),
-    Promise = require('bluebird'),
-    mongoose = require('mongoose'),
-    AWS = require('aws-sdk'),
-    redis = require('redis').createClient(),
-    dynamodbSchema = require('./dynamodb_schema'),
-    gcloudDatastore = require('@google-cloud/datastore')({
+const fs = require('fs');
+const path = require('path');
+const stampede = require('../index');
+const Promise = require('bluebird');
+const minimist = require('minimist');
+
+// Require in all tests in the modules directory
+const tests = fs.readdirSync(path.join(__dirname,'modules'))
+  .filter(filename => /\.js$/.test(filename))
+  .map(function(filename) {
+    const test = require(path.join(__dirname,'modules',filename));
+    test.filename = filename;
+    return test;
+  });
+
+// Define caches for each adaptor
+var caches = {
+ mongo : async () => {
+    const mongodb = require('mongodb');
+    Promise.promisifyAll(mongodb.MongoClient);
+    const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
+    return stampede.mongo(client.collection('stampede_tests'));
+  },
+  
+  mongoHistory : async () => {
+    const mongodb = require('mongodb');
+    Promise.promisifyAll(mongodb.MongoClient);
+    const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
+    return stampede.mongoHistory(client.collection('stampede_history_tests'));
+  },
+
+  mongodb : async () => {
+    const mongodb = require('mongodb');
+    Promise.promisifyAll(mongodb.MongoClient);
+    const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
+     return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
+  },
+
+  mongoose : () => {
+    const mongoose = require('mongoose');
+    mongoose.connect('mongodb://mongodb:27017/stampede_tests');
+    return stampede.mongoose('stampede_tests_mongoose',{mongoose:mongoose});
+  },
+
+  redis : () => {
+    const redis = require('redis').createClient({host: 'redis'});
+    return stampede.redis(redis);
+  },
+
+  /*dynamodb : async () => {
+    const AWS = require('aws-sdk');
+    const dynamodbSchema = require('./dynamodb_schema');
+    AWS.config.update({ region: 'us-east-1', endpoint: new AWS.Endpoint('http://dynamodb:8000') });
+    var dynamodb = new AWS.DynamoDB();
+    try {
+      await dynamodb.deleteTable({TableName:dynamodbSchema.TableName}).promise();
+    } catch(err) {
+      if (err.message !== 'Cannot do operations on a non-existent table') {
+        console.log(err);
+        throw err;
+      }
+    }
+
+    try {
+      await dynamodb.createTable(dynamodbSchema).promise();
+    } catch(err) {
+      if (err.message !== 'Cannot create preexisting table') {
+        console.log(err.message);
+        throw err;
+      }
+    }
+
+    return stampede.dynamodb(new AWS.DynamoDB.DocumentClient());
+  }
+
+  gcloudDatastore : () => {
+    const gcloudDatastore = require('@google-cloud/datastore')({
       projectId: process.env.DATASTORE_PROJECT_ID,
       promise: Promise,
       credentials: {
@@ -17,93 +84,41 @@ var fs = require('fs'),
         "client_id": "555"
       }
     });
-
-Promise.promisifyAll(mongodb.MongoClient);
-
-mongoose.connect('mongodb://localhost:27017/stampede_tests');
-
-AWS.config.update({ region: 'us-east-1', endpoint: 'http://localhost:8000' });
-
-// Require in all tests in the modules directory
-var tests = fs.readdirSync(path.join(__dirname,'modules'))
-  .filter(filename => filename.indexOf('.swp') === -1)
-  .map(function(filename) {
-    return require(path.join(__dirname,'modules',filename));
-  });
-
-// Define caches for each adaptor
-var caches = {
-  mongo : () => stampede.mongo(
-    mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
-      .then(function(db) {
-        return db.collection('stampede_tests');
-      })
-  ),
-
-  mongoHistory : () => stampede.mongoHistory(
-    mongodb.MongoClient.connectAsync('mongodb://localhost:27017/stampede_tests', {native_parser:true})
-      .then(function(db) {
-        return db.collection('stampede_tests');
-      })
-  ),
-
-  mongodb : () => stampede.mongodb(
-     mongodb.MongoClient.connect('mongodb://localhost:27017/stampede_tests', {native_parser:true})
-      .then(function(db) {
-        return db.collection('stampede_tests');
-      })
-  ),
-
-  mongoose : () =>  stampede.mongoose('stampede_tests',{mongoose:mongoose}),
-
-  redis : () => stampede.redis(redis),
-
-  //dynamodb : () => stampede.dynamodb(new AWS.DynamoDB.DocumentClient()),
-
-  //gcloudDatastore : () => stampede.gcloudDatastore([gcloudDatastore,redis]),
+    return stampede.gcloudDatastore([gcloudDatastore,redis])
+  },
+  */
 
   file : () => stampede.file(path.join(__dirname,'filecache'))
 };
 
-// define before hooks for adapters
-var befores = {
-  dynamodb: function() {
-    var dynamodb = Promise.promisifyAll(new AWS.DynamoDB());
-    return dynamodb.deleteTableAsync({TableName:dynamodbSchema.TableName})
-      .catch(err => {
-        if (!err.cause || err.cause.message !== 'Cannot do operations on a non-existent table') {
-          console.log(err);
-          throw err;
-        }
-      })
-      .then(() => dynamodb.createTableAsync(dynamodbSchema))
-      .catch(err => {
-        if (!err.cause || err.cause.message !== 'Cannot create preexisting table') {
-          console.log(err);
-          throw err;
-        }
-      });
+
+module.exports = async t => {
+  
+  // Allow selecting adapters and tests from command line with rege
+  // Example: only use redis driver for error tests:
+  // tap test-all.js --test-arg="--adapter=redis" --test-arg="--test=error" -Rspec
+  const argv = minimist(process.argv.slice(2));
+  const reAdapter = argv.adapter && new RegExp(argv.adapter);
+  const reTest = argv.test && new RegExp(argv.test);
+
+  for (let name in caches) {
+    if (reAdapter && !reAdapter.test(name)) continue;
+
+    const cache = await caches[name]();
+
+    await t.test(name, async t => {
+      for (var i in tests) {
+        const test = tests[i];
+        if (reTest && !reTest.test(test.filename)) continue;
+        await test(t,cache,name);
+      }
+
+      if (cache.adapter.close)  cache.adapter.close();
+      t.end();
+    });  
+
   }
+  t.end();
 };
 
-// Go through all caches and run tests
-Object.keys(caches)
-  .forEach(function(name) {
-
-    if (process.argv[3] && name !== process.argv[3])
-      return;
-
-    var cache = caches[name]();
-
-    describe(name+' adapter',function() {
-      before(function() {
-        this.cache = cache;
-        this.adapterName = name;
-        if (befores[name])
-          return befores[name]();
-      });
-      tests.forEach(function(test) {
-        test();
-      });
-    });
-  });
+if (!module.parent) module.exports(require('tap')).catch(e => console.error(e))

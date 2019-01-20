@@ -1,99 +1,69 @@
-var assert = require('assert');
+module.exports = async (t, cache) => t.test('Basic test', async t => {
 
-function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
-
-module.exports = function() {
+  const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
   var result = 'This is the result of the basic test';
 
   function testFn() {
     return result;
   }
 
-  before(function() {
-    return Promise.all([
-      this.cache.adapter.remove('testkey',{all: true}),
-      this.cache.adapter.remove('rawkey',{all: true})
-    ]);
+  await Promise.all([
+    cache.adapter.remove('testkey',{all: true}),
+    cache.adapter.remove('rawkey',{all: true})
+  ]);
+
+  t.test('on empty cache', async t => {
+    let d;
+    d = await cache.get('testkey').then(shouldError(t),Object);
+    t.same(d.message, 'KEY_NOT_FOUND', '`get` should error');
+
+    d = await cache.cached('testkey', testFn);
+    t.same(d, result, '`cached` should return function output');
   });
 
-  describe('Basic test',function() {
-    describe('on empty cache',function() {
-      it('`get` should error',function() {
-        return this.cache.get('testkey')
-          .then(shouldError,errorMsg('KEY_NOT_FOUND'));
-      });
+  t.test('after first `cached`', async t => {
+    let d;
+    d = await cache.cached('testkey',function() { throw 'Should not run fn';});
+    t.same(d, result, 'second `cached` should load from cache');
 
-      it('`cached` should return function output',function() {
-        return this.cache.cached('testkey',testFn)
-          .then(shouldEqual(result));
-      });
+    d = await cache.get('testkey');
+    t.same(d.data, result, '`get` should load from cache');
+  });
+
+  t.test('Caching a value', async t => {
+    let d;
+    d =  await cache.cached('value','VALUE');
+    t.same(d, 'VALUE', '`cached` returns the value');
+
+    d = await cache.get('value');
+    t.same(d.data, 'VALUE', '`get` returns the value');
+  });
+
+  t.test('Caching with payload = true', async t => {
+    t.test('`cached` returns the payload', async t => {
+      let d = await cache.cached('rawkey',testFn,{payload:true})
+      t.same(d.data,result);
+      t.same(d.__caching__,false);
+      t.same(typeof d.updated.getMonth,'function');
     });
 
-    describe('after first `cached`',function() {
-      it('second `cached` should load from cache',function() {
-        return this.cache.cached('testkey',function() { throw 'Should not run fn';})
-          .then(shouldEqual(result));
-      });
-
-      it('`get` should load from cache',function() {
-        return this.cache.get('testkey')
-          .then(function(d) {
-            assert.equal(d.data,result);
-          });
-      });
-    });
-
-
-    describe('Caching a value',function() {
-      it('`cached` returns the value',function() {
-        return this.cache.cached('value','VALUE')
-          .then(shouldEqual('VALUE'));
-      });
-
-      it('`get` returns the value',function() {
-        return this.cache.get('value')
-          .then(function(d) {
-            assert.equal(d.data,'VALUE');
-          });
-      });
-    });
-
-    describe('Caching with payload = true',function() {
-      it('`cached` returns the payload',function() {
-        return this.cache.cached('rawkey',testFn,{payload:true})
-          .then(function(d) {
-            assert.equal(d.data,result);
-            assert.equal(d.__caching__,false);
-            assert.equal(typeof d.updated.getMonth,'function');
-          });
-      });
-
-      it('subsequent `cached` returns the payload',function() {
-        return this.cache.cached('rawkey',shouldError,{payload:true})
-          .then(function(d) {
-            assert.equal(d.data,result);
-            assert.equal(d.__caching__,false);
-            assert.equal(typeof d.updated.getMonth,'function');
-          });
-      });
-
-    });
-
-    describe('Getting from pre-cached',function() {
-      it('returns available value',function() {
-        return this.cache.cached('prekey1',function() { throw 'Should not run';},{preCache:{prekey1:{data:42}}})
-          .then(function(d) {
-            assert.equal(d,42);
-          });
-      });
-      it('returns available value raw',function() {
-        return this.cache.cached('prekey1',function() { throw 'Should not run';},{payload:true, preCache:{prekey1:{data:42}}})
-          .then(function(d) {
-            assert.equal(d.data,42);
-          });
-      });
+    t.test('subsequent `cached` returns the payload',async t => {
+      let d = await cache.cached('rawkey',shouldError(t),{payload:true});
+      t.same(d.data,result);
+      t.same(d.__caching__,false);
+      t.same(typeof d.updated.getMonth,'function');
     });
   });
-};
+
+
+  t.test('Getting from pre-cached', async t => {
+    let d;
+    d = await cache.cached('prekey1',function() { throw 'Should not run';},{preCache:{prekey1:{data:42}}});
+    t.same(d,42, 'returns available value');
+       
+    d = await cache.cached('prekey1',function() { throw 'Should not run';},{payload:true, preCache:{prekey1:{data:42}}});       
+    t.same(d.data,42, 'returns available value raw');
+  });
+
+  t.end();
+});

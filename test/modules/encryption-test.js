@@ -1,104 +1,95 @@
-var assert = require('assert');
+const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
+const shouldNotRun = t => () => t.fail('Should not run');
 
-function shouldNotRun() { throw 'Should not run';}
-function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
 
-module.exports = function() {
-  var result = 'This is the result of the encrypted test';
+module.exports = async (t, cache) => t.test('Encryption', async t => {
+  
+  const result = 'This is the result of the encrypted test';
 
   function testFn() {
     return result;
   }
 
-  before(function() {
-    return this.cache.adapter.remove('encryptkey',{all: true});
-    return this.cache.adapter.remove('encryptkey2',{all: true});
+  await Promise.all([
+    cache.adapter.remove('encryptkey',{all: true}),
+    cache.adapter.remove('encryptkey2',{all: true})
+  ]);
+
+  t.test('passphrase in object', async t => {
+    t.test('first `cached` should return output', async t => {
+      cache.passphrase = 'testing123';
+      let d = await cache.cached('encryptkey',testFn);
+      t.same(d, result);
+    });
+
+    t.test('`adapter.get` returns encrypted data', async t => {
+      let d = await cache.adapter.get('encryptkey');      
+      t.equal(d.__caching__,false);
+      t.notEqual(d,result);
+      t.equal(cache.decrypt(d.data,'testing123'),result);
+    });
+
+    t.test('`cached` should return decrypted cached result', async t => {
+      let d = await cache.cached('encryptkey',shouldNotRun(t));
+      t.same(d, result);
+    });
+
+    t.test('`cached` with payload = true should return payload', async t => {
+      let d = await cache.cached('encryptkey',shouldNotRun(t), {payload:true});
+      t.same(d.data, result);
+    });
+
+
+    t.test('`get` should return decrypted cached result', async t => {
+      const d = await cache.get('encryptkey');
+      t.same(d.data, result);
+    });
+
+    t.end();
   });
 
-  describe('Encryption',function() {
-    after(function() {
-      this.cache.passphrase = undefined;
-    });
-    describe('passphrase in object',function() {
-      it('first `cached` should return output',function() {
-        this.cache.passphrase = 'testing123';
-        return this.cache.cached('encryptkey',testFn)
-          .then(shouldEqual(result));
-      });
 
-      it('`adapter.get` returns encrypted data',function() {
-        var self = this;
-        return self.cache.adapter.get('encryptkey')
-          .then(function(d) {
-            assert.equal(d.__caching__,false);
-            assert.notEqual(d,result);
-            assert.equal(self.cache.decrypt(d.data,'testing123'),result);
-          });
-      });
-
-      it('`cached` should return decrypted cached result',function() {
-        return this.cache.cached('encryptkey',shouldNotRun)
-          .then(shouldEqual(result));
-      });
-
-      it('`cached` with payload = true should return payload',function() {
-        return this.cache.cached('encryptkey',shouldNotRun, {payload:true})
-          .then(function(d) {
-            return d.data;
-          })
-          .then(shouldEqual(result));
-      });
-
-      it('`get` should return decrypted cached result',function() {
-        return this.cache.get('encryptkey')
-          .then(function(d) {
-            assert.equal(d.data,result);
-          });
-      });
+  t.test('modified object passphrase',async t => {
+    t.test('`get` should error', async t => {
+      cache.passphrase = 'differentPassPhrase';
+      let e = await cache.get('encryptkey').then(shouldError(t),Object);
+      t.same(e.message, 'BAD_PASSPHRASE');
     });
 
-    describe('modified object passphrase',function() {
-      it('`get` should error',function() {
-        this.cache.passphrase = 'differentPassPhrase';
-        return this.cache.get('encryptkey')
-          .then(shouldError,errorMsg('BAD_PASSPHRASE'));
-      });
-
-      it('`get` with correct passphrase works',function() {
-        return this.cache.get('encryptkey',{passphrase:'testing123'})
-          .then(function(d) {
-            assert.equal(d.data,result);
-          });
-      });
+    t.test('`get` with correct passphrase works',async t => {
+      let d = await cache.get('encryptkey',{passphrase:'testing123'});
+      t.same(d.data, result);
     });
 
-    describe('passphrase in options',function() {
-      it('`cached` works first time',function() {
-        return this.cache.cached('encryptkey2',testFn,{passphrase:'newpassphrase'})
-          .then(shouldEqual(result));
-      });
-
-      it('`adapter.get` returns encrypted data',function() {
-        var self = this;
-        return self.cache.adapter.get('encryptkey2')
-          .then(function(d) {
-            assert.equal(d.__caching__,false);
-            assert.notEqual(d,result);
-            assert.equal(self.cache.decrypt(d.data,'newpassphrase'),result);
-          });
-      });
-
-      it('`get` without new passphrase fails',function() {
-        return this.cache.cached('encryptkey2',testFn)
-          .then(shouldError,errorMsg('BAD_PASSPHRASE'));
-      });
-
-      it('`get` with new passphrase works',function() {
-        return this.cache.cached('encryptkey2',testFn,{passphrase:'newpassphrase'})
-          .then(shouldEqual(result));
-      });
-    });
+    t.end();
   });
-};
+
+  t.test('passphrase in options', async t => {
+    t.test('`cached` works first time',async t => {
+      let d = await cache.cached('encryptkey2',testFn,{passphrase:'newpassphrase'});
+      t.same(d, result);
+    });
+
+    t.test('`adapter.get` returns encrypted data', async t => {
+      let d = await cache.adapter.get('encryptkey2');
+      t.equal(d.__caching__,false);
+      t.notEqual(d,result);
+      t.equal(cache.decrypt(d.data,'newpassphrase'),result);
+    });
+
+    t.test('`get` without new passphrase fails', async t => {
+      let e = await cache.cached('encryptkey2',testFn).then(shouldError(t), Object);
+      t.same(e.message, 'BAD_PASSPHRASE');
+    });
+
+    t.test('`get` with new passphrase works', async t => {
+      let d = await cache.cached('encryptkey2',testFn,{passphrase:'newpassphrase'});
+      t.same(d, result);
+      delete cache.passphrase;
+    });
+
+    t.end();
+  });
+
+  t.end();
+});

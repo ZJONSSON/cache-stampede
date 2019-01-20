@@ -1,73 +1,49 @@
-var Promise = require('bluebird'),
-    assert = require('assert');
+const Promise = require('bluebird');
 
-function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
+const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
+const shouldNotRun = t => () => t.fail('Should not run');
 
-module.exports = function() {
-  var result = 'This is the result of the delay test';
 
-  function testFn() {
-    return Promise.delay(600)
-      .then(function() {
-        return result;
-      });
-  }
+module.exports = async (t, cache) => t.test('When fn is async', async t => {
 
-  before(function() {
-    return Promise.all([
-      this.cache.adapter.remove('delay-testkey',{all: true}),
-      this.cache.adapter.remove('delay-testkey2',{all: true}),
-      this.cache.adapter.remove('delay-testkey3',{all: true})
-    ]);
+  const result = 'This is the result of the delay test';
+
+   await Promise.all([
+    cache.adapter.remove('delay-testkey',{all: true}),
+    cache.adapter.remove('delay-testkey2',{all: true}),
+    cache.adapter.remove('delay-testkey3',{all: true})
+  ]);
+
+  const testFn = () => Promise.delay(600).then(() => result);
+
+  t.test('`set` should error when db is __caching__', async t => {
+    cache.cached('delay-testkey',testFn,{info:'TEST'});
+    await Promise.delay(10);
+    let e = await cache.set('delay-testkey', 'New Value').then(shouldError(t), Object);
+    t.same(e.message, 'KEY_EXISTS');
   });
 
-  describe('When fn is async',function() {
-    it('`set` should error when db is __caching__',function() {
-      var self = this;
-      this.cache.cached('delay-testkey',testFn,{info:'TEST'});
-
-      return Promise.delay(10)
-        .then(function() {
-          return self.cache.set('delay-testkey',function() { return 'New Value'; })
-            .then(shouldError,errorMsg('KEY_EXISTS'));
-        });
-    });
-
-    it('cache responds to `info` while fn running',function() {
-      return this.cache.info('delay-testkey')
-        .then(shouldEqual('TEST'));
-    });
-
-    it('re-running should wait for cached results',function() {
-      return this.cache.cached('delay-testkey',function() { throw 'Should not run';},{maxRetries:6})
-        .then(shouldEqual(result));
-    });
-
-    it('return the request info after running',function() {
-      return this.cache.info('delay-testkey')
-        .then(shouldEqual('TEST'));
-    });
-
-    it('re-running with zero delay should fail MAXIMUM_RETRIES',function() {
-      var self = this;
-      this.cache.cached('delay-testkey2',testFn);
-      return Promise.delay(50)
-        .then(function() {
-          return self.cache.cached('delay-testkey2',testFn,{retryDelay:0});
-        })      
-        .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
-    });
-
-    it('rerunning with only one retry should fail',function() {
-      var self = this;
-      this.cache.cached('delay-testkey3',testFn);
-      return Promise.delay(50)
-        .then(function() {
-          return self.cache.cached('delay-testkey3',testFn,{maxRetries:1});
-        })
-        .then(shouldError,errorMsg('MAXIMUM_RETRIES'));
-    });
+  t.test('cache responds to `info` while fn running', async t => {
+    const d = await cache.info('delay-testkey');
+    t.same(d, 'TEST');
   });
-};
+
+  t.test('re-running should wait for cached results', async t => {
+    let d = await cache.cached('delay-testkey',shouldNotRun(t),{maxRetries:6});
+    t.same(d, result);
+  });
+
+  t.test('return the request info after running', async t => {
+    let d = await cache.info('delay-testkey');
+    t.same(d, 'TEST');
+  });
+
+  t.test('re-running with zero delay should fail MAXIMUM_RETRIES', async t =>{
+    cache.cached('delay-testkey2',testFn);
+    await Promise.delay(50);
+    let e = await cache.cached('delay-testkey2',testFn,{retryDelay:0}).then(shouldError(t),Object);
+    t.same(e.message, 'MAXIMUM_RETRIES');
+  });
+  
+  t.end();
+});
