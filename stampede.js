@@ -5,205 +5,205 @@ var Promise = require('bluebird'),
 Promise.config({ warnings: false});
 Promise.promisifyAll(zlib);
 
-function Stampede(options) {
-  if (!(this instanceof Stampede))
-    return new Stampede(options);
-  options = this.options = options || {};
-  this.retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : 100;
-  this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
-  this.expiry = options.expiry;
-  this.passphrase = options.passphrase;
-  this.algo = options.algo || 'aes192';
-  this.adapter = options.adapter || this.adapter;
-  // Bind the cached function to make it passable directly to consumers of the cache
-  this.cached = this.cached.bind(this);
-  if (!this.adapter) throw 'Missing adapter';
-}
+class Stampede {
+  constructor(options) {
+    options = this.options = options || {};
+    this.retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : 100;
+    this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
+    this.expiry = options.expiry;
+    this.passphrase = options.passphrase;
+    this.algo = options.algo || 'aes192';
+    this.adapter = options.adapter || this.adapter;
+    // Bind the cached function to make it passable directly to consumers of the cache
+    this.cached = this.cached.bind(this);
+    if (!this.adapter) throw 'Missing adapter';
+  }
 
-Stampede.prototype.get = function(key,options,retry) {
-  var self = this,
-      value;
+  get(key,options,retry) {
+    var self = this,
+        value;
 
-  retry = retry || 0;
-  options = options || {};
+    retry = retry || 0;
+    options = options || {};
 
-  var maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries,
-      retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
+    var maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries,
+        retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
 
-  // If we already have the value pre-cached we use it
-  if (options.preCache && options.preCache[key] !== undefined)
-    value = Promise.resolve(options.preCache[key]);
+    // If we already have the value pre-cached we use it
+    if (options.preCache && options.preCache[key] !== undefined)
+      value = Promise.resolve(options.preCache[key]);
 
-  return ( value  || this.adapter.get(key,options))
-    .then(function(d) {
-      function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
-      if (!d) keyNotFound();
+    return ( value  || this.adapter.get(key,options))
+      .then(function(d) {
+        function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
+        if (!d) keyNotFound();
 
-      var updated = +(new Date(d.updated)),
-          now = new Date();
+        var updated = +(new Date(d.updated)),
+            now = new Date();
 
-      var expired = d.expiryTime && (now > +d.expiryTime),
-          aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now),
-          retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
+        var expired = d.expiryTime && (now > +d.expiryTime),
+            aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now),
+            retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
 
-      if (expired || aged || retryExpiry) {
-        d = undefined;
-        return self.adapter.remove(key).then(keyNotFound);
-      }
+        if (expired || aged || retryExpiry) {
+          d = undefined;
+          return self.adapter.remove(key).then(keyNotFound);
+        }
 
-      if (d.__caching__) {
-        if (retry++ > maxRetries)
-          throw new Error('MAXIMUM_RETRIES');
+        if (d.__caching__) {
+          if (retry++ > maxRetries)
+            throw new Error('MAXIMUM_RETRIES');
 
-        return Promise.delay(retryDelay)
-          .then(function() {
-            return self.get(key,options,retry);
-          });
-      }
+          return Promise.delay(retryDelay)
+            .then(function() {
+              return self.get(key,options,retry);
+            });
+        }
 
-      if (d.compressed) {
-        d.data = zlib.inflateAsync(d.data).then(JSON.parse);
-      }
+        if (d.compressed) {
+          d.data = zlib.inflateAsync(d.data).then(JSON.parse);
+        }
 
-      return Promise.props(d);
-    })
-    .then(function(d) {
-      if (d.encrypted) {
-        var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-        d.data = self.decrypt(d.data,passphrase);
-        d.encrypted = false;
-      }
-      d.updated = new Date(d.updated);
-      if (d.error) throw d.data;
-      else return d;
-    });
-};
+        return Promise.props(d);
+      })
+      .then(function(d) {
+        if (d.encrypted) {
+          var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
+          d.data = self.decrypt(d.data,passphrase);
+          d.encrypted = false;
+        }
+        d.updated = new Date(d.updated);
+        if (d.error) throw d.data;
+        else return d;
+      });
+  }
 
-Stampede.prototype.set = function(key,fn,options) {
-  options = options || {};
+  set(key,fn,options) {
+    options = options || {};
 
-  var payload = {
-        info : options.info,
-        __caching__ : true,
-        updated : new Date(),
-      },
-      self = this;
+    var payload = {
+          info : options.info,
+          __caching__ : true,
+          updated : new Date(),
+        },
+        self = this;
 
-  var expiry = options.expiry || this.expiry;
-  if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
+    var expiry = options.expiry || this.expiry;
+    if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
-  return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
-    .then(function() {
+    return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
+      .then(function() {
 
-      function finalize(d) {
-        var raw_data;
-        return Promise.resolve(d)
-          .catch(function(e) {
-            if (typeof e === 'string') e = {message:e};
-            // If the error is to be cached we transform into a JSON object
-            if (e && e.cache) {
-              var err = {error: true};
-              Object.getOwnPropertyNames(e)
-                .forEach(function(key) {
-                  err[key] = e[key];
+        function finalize(d) {
+          var raw_data;
+          return Promise.resolve(d)
+            .catch(function(e) {
+              if (typeof e === 'string') e = {message:e};
+              // If the error is to be cached we transform into a JSON object
+              if (e && e.cache) {
+                var err = {error: true};
+                Object.getOwnPropertyNames(e)
+                  .forEach(function(key) {
+                    err[key] = e[key];
+                  });
+                return err;
+              }
+              // Otherwise we remove the key and throw directly
+              else return self.adapter.remove(key)
+                .then(function() {
+                  throw e;
                 });
-              return err;
-            }
-            // Otherwise we remove the key and throw directly
-            else return self.adapter.remove(key)
-              .then(function() {
-                throw e;
-              });
-          })
-          // Optional compression
-          .then(function(d) {
-            raw_data = d;
-            // Optional encryption
-            var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-            if (passphrase) {
-              payload.encrypted = true;
-              d = self.encrypt(d,passphrase);
-            } 
-
+            })
             // Optional compression
-            var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
-            if (compressed) {
-              payload.compressed = true;
-              return zlib.deflateAsync(JSON.stringify(d));
-            }
-            else return d;
-          })
-          
-          .then(function(d) {
-            payload.data = d;
-            payload.__caching__ = false;
-            if (d && d.error) payload.error = true;
-            return self.adapter.update(key,payload,expiry);
-          })
-          .then(function() {
-            payload.data = raw_data;
-            if (payload.error) throw payload.data;
-            else return options.payload ? payload : payload.data;
-          });
-      }
+            .then(function(d) {
+              raw_data = d;
+              // Optional encryption
+              var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
+              if (passphrase) {
+                payload.encrypted = true;
+                d = self.encrypt(d,passphrase);
+              } 
 
-      if (options.clues) {
-        return [ function $noThrow(_) { return fn; }, function(value) {
-          if (value.error)
-            value = Promise.reject(value);
-          return finalize(value);
-        }];
-      } else {
-        return finalize(Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn));
-      }
-    });
-};
+              // Optional compression
+              var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
+              if (compressed) {
+                payload.compressed = true;
+                return zlib.deflateAsync(JSON.stringify(d));
+              }
+              else return d;
+            })
+            
+            .then(function(d) {
+              payload.data = d;
+              payload.__caching__ = false;
+              if (d && d.error) payload.error = true;
+              return self.adapter.update(key,payload,expiry);
+            })
+            .then(function() {
+              payload.data = raw_data;
+              if (payload.error) throw payload.data;
+              else return options.payload ? payload : payload.data;
+            });
+        }
 
-Stampede.prototype.info = function(key,options) {
+        if (options.clues) {
+          return [ function $noThrow(_) { return fn; }, function(value) {
+            if (value.error)
+              value = Promise.reject(value);
+            return finalize(value);
+          }];
+        } else {
+          return finalize(Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn));
+        }
+      });
+  }
+
+  info(key,options) {
   return this.adapter.get(key,options)
     .then(function(d) {
       return d.info;
     });
-};
-
-Stampede.prototype.cached = function(key,fn,options) {
-  options = options || {};
-  var self = this;
-   return this.get(key,options,0)
-    .then(function(d) {
-      return options.payload ? d : d.data;
-    },
-    function(e) {
-      if (e.message === 'KEY_NOT_FOUND') {
-        return self.set(key,fn,options)
-          .catch(function(err) {
-            // If we experienced a race situation we try to get the results
-            if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
-              return self.cached(key,fn,options);
-            else
-              throw err;
-          });
-      } else throw e;
-    });
-};
-
-Stampede.prototype.encrypt = function(data,passphrase) {
-  if (!passphrase) throw 'MISSING_PASSPHRASE';
-  var cipher = crypto.createCipher(this.algo ,passphrase);
-  return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
-};
-
-Stampede.prototype.decrypt = function(data,passphrase) {
-  if (!passphrase) throw 'MISSING_PASSPHRASE';
-  var decipher = crypto.createDecipher(this.algo,passphrase);
-  try {
-    return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
-  } catch(e) {
-    if (e instanceof TypeError || (e.message && e.message.indexOf('bad decrypt') !== -1))
-      throw new Error('BAD_PASSPHRASE');
-    else
-      throw e;
   }
-};
+
+  cached (key,fn,options) {
+    options = options || {};
+    var self = this;
+     return this.get(key,options,0)
+      .then(function(d) {
+        return options.payload ? d : d.data;
+      },
+      function(e) {
+        if (e.message === 'KEY_NOT_FOUND') {
+          return self.set(key,fn,options)
+            .catch(function(err) {
+              // If we experienced a race situation we try to get the results
+              if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
+                return self.cached(key,fn,options);
+              else
+                throw err;
+            });
+        } else throw e;
+      });
+  }
+
+  encrypt(data,passphrase) {
+    if (!passphrase) throw 'MISSING_PASSPHRASE';
+    var cipher = crypto.createCipher(this.algo ,passphrase);
+    return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
+  }
+
+  decrypt(data,passphrase) {
+    if (!passphrase) throw 'MISSING_PASSPHRASE';
+    var decipher = crypto.createDecipher(this.algo,passphrase);
+    try {
+      return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
+    } catch(e) {
+      if (e instanceof TypeError || (e.message && e.message.indexOf('bad decrypt') !== -1))
+        throw new Error('BAD_PASSPHRASE');
+      else
+        throw e;
+    }
+  }
+}
 
 module.exports = Stampede;
