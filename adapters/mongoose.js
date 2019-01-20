@@ -1,8 +1,8 @@
-var mongoAdapter = require('./mongo');
+const mongoAdapter = require('./mongodb');
 
-module.exports = function(collection_name,options) {
+module.exports = async function(collection_name,options) {
   options = options || {};
-  var mongoose = (options.mongoose) || require('mongoose') ;
+  let mongoose = (options.mongoose) || require('mongoose') ;
   if (!mongoose.models[collection_name]) {
     options.collection = collection_name;
     mongoose.model(collection_name,new mongoose.Schema({
@@ -13,7 +13,7 @@ module.exports = function(collection_name,options) {
     },options));
   }
 
-  const adapter = mongoAdapter(mongoose.models[collection_name].collection);
+  const adapter = await mongoAdapter(mongoose.models[collection_name].collection);
   adapter.close = () => mongoose.connection.close();
   return adapter;
 };

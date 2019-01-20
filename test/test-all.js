@@ -15,13 +15,7 @@ const tests = fs.readdirSync(path.join(__dirname,'modules'))
 
 // Define caches for each adaptor
 var caches = {
- mongo : async () => {
-    const mongodb = require('mongodb');
-    Promise.promisifyAll(mongodb.MongoClient);
-    const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-    return stampede.mongo(client.collection('stampede_tests'));
-  },
-  
+
   mongoHistory : async () => {
     const mongodb = require('mongodb');
     Promise.promisifyAll(mongodb.MongoClient);

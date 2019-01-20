@@ -8,13 +8,18 @@ module.exports = async (t, cache) => t.test('When fn is async', async t => {
 
   const result = 'This is the result of the delay test';
 
+  const adapter = await cache.adapter;
+
    await Promise.all([
-    cache.adapter.remove('delay-testkey',{all: true}),
-    cache.adapter.remove('delay-testkey2',{all: true}),
-    cache.adapter.remove('delay-testkey3',{all: true})
+    adapter.remove('delay-testkey',{all: true}),
+    adapter.remove('delay-testkey2',{all: true}),
+    adapter.remove('delay-testkey3',{all: true})
   ]);
 
-  const testFn = () => Promise.delay(600).then(() => result);
+  const testFn = async () => {
+    await Promise.delay(600);
+    return result;
+  };
 
   t.test('`set` should error when db is __caching__', async t => {
     cache.cached('delay-testkey',testFn,{info:'TEST'});

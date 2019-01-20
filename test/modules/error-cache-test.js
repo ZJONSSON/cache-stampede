@@ -4,13 +4,15 @@ const shouldNotRun = t => () => t.fail('Should not run');
 
 
 module.exports = async (t, cache) => t.test('Error with `cache` as true', async t => {
+
+  const adapter = await cache.adapter;
   
   const testFn = async () => {
     await Promise.delay(500);
     throw {message:'Error',cache:true};
   };
   
-  await cache.adapter.remove('errorcache-testkey',{all: true});
+  await adapter.remove('errorcache-testkey',{all: true});
 
   t.test('should return as rejected promise',async t => {
     let e = await cache.cached('errorcache-testkey',testFn).then(d => t.fail(`Should error '${d}`), Object);

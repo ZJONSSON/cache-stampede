@@ -1,9 +1,11 @@
-var Promise = require('bluebird'),
-    crypto = require('crypto'),
-    zlib = require('zlib');
+const Promise = require('bluebird');
+const crypto = require('crypto');
+const zlib = require('zlib');
 
 Promise.config({ warnings: false});
 Promise.promisifyAll(zlib);
+
+const keyNotFound = () => { throw new Error('KEY_NOT_FOUND');};
 
 class Stampede {
   constructor(options) {
@@ -19,182 +21,164 @@ class Stampede {
     if (!this.adapter) throw 'Missing adapter';
   }
 
-  get(key,options,retry) {
-    var self = this,
-        value;
+  async get(key,options,retry) {
+    if (this.adapter.then) this.adapter = await this.adapter;
+    let value;
 
     retry = retry || 0;
     options = options || {};
 
-    var maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries,
-        retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
+    const maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : this.maxRetries;
+    const retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : this.retryDelay;
 
     // If we already have the value pre-cached we use it
     if (options.preCache && options.preCache[key] !== undefined)
-      value = Promise.resolve(options.preCache[key]);
+      value = await options.preCache[key];
 
-    return ( value  || this.adapter.get(key,options))
-      .then(function(d) {
-        function keyNotFound() { throw new Error('KEY_NOT_FOUND');}
-        if (!d) keyNotFound();
+    let d =  ( value  || await this.adapter.get(key,options));
+    if (!d) keyNotFound();
 
-        var updated = +(new Date(d.updated)),
-            now = new Date();
+    const updated = +(new Date(d.updated));
+    const now = new Date();
 
-        var expired = d.expiryTime && (now > +d.expiryTime),
-            aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now),
-            retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
+    const expired = d.expiryTime && (now > +d.expiryTime);
+    const aged = (!isNaN(options.maxAge) && (options.maxAge || options.maxAge === 0) && (updated + (+options.maxAge)) < now);
+    const retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
 
-        if (expired || aged || retryExpiry) {
-          d = undefined;
-          return self.adapter.remove(key).then(keyNotFound);
-        }
+    if (expired || aged || retryExpiry) {
+      d = undefined;
+      await this.adapter.remove(key);
+      keyNotFound();
+    }
 
-        if (d.__caching__) {
-          if (retry++ > maxRetries)
-            throw new Error('MAXIMUM_RETRIES');
+    if (d.__caching__) {
+      if (retry++ > maxRetries)
+        throw new Error('MAXIMUM_RETRIES');
 
-          return Promise.delay(retryDelay)
-            .then(function() {
-              return self.get(key,options,retry);
-            });
-        }
+      await Promise.delay(retryDelay);
+      return this.get(key,options,retry);
+    }
 
-        if (d.compressed) {
-          d.data = zlib.inflateAsync(d.data).then(JSON.parse);
-        }
-
-        return Promise.props(d);
-      })
-      .then(function(d) {
-        if (d.encrypted) {
-          var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-          d.data = self.decrypt(d.data,passphrase);
-          d.encrypted = false;
-        }
-        d.updated = new Date(d.updated);
-        if (d.error) throw d.data;
-        else return d;
-      });
+    if (d.compressed) {
+      const inflated = await zlib.inflateAsync(d.data);
+      d.data = JSON.parse(inflated);
+    }
+  
+    if (d.encrypted) {
+      const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
+      d.data = this.decrypt(d.data,passphrase);
+      d.encrypted = false;
+    }
+    d.updated = new Date(d.updated);
+    if (d.error) throw d.data;
+    else return d;
   }
 
-  set(key,fn,options) {
+  async set(key,fn,options) {
+    if (this.adapter.then) this.adapter = await this.adapter;
     options = options || {};
 
-    var payload = {
-          info : options.info,
-          __caching__ : true,
-          updated : new Date(),
-        },
-        self = this;
+    const payload = {
+      info : options.info,
+      __caching__ : true,
+      updated : new Date(),
+    };
 
-    var expiry = options.expiry || this.expiry;
+    const expiry = options.expiry || this.expiry;
     if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
-    return (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry))
-      .then(function() {
+    await (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry));
 
-        function finalize(d) {
-          var raw_data;
-          return Promise.resolve(d)
-            .catch(function(e) {
-              if (typeof e === 'string') e = {message:e};
-              // If the error is to be cached we transform into a JSON object
-              if (e && e.cache) {
-                var err = {error: true};
-                Object.getOwnPropertyNames(e)
-                  .forEach(function(key) {
-                    err[key] = e[key];
-                  });
-                return err;
-              }
-              // Otherwise we remove the key and throw directly
-              else return self.adapter.remove(key)
-                .then(function() {
-                  throw e;
-                });
-            })
-            // Optional compression
-            .then(function(d) {
-              raw_data = d;
-              // Optional encryption
-              var passphrase = options.passphrase !== undefined ? options.passphrase : self.passphrase;
-              if (passphrase) {
-                payload.encrypted = true;
-                d = self.encrypt(d,passphrase);
-              } 
-
-              // Optional compression
-              var compressed = options.compressed !== undefined ? options.compressed : self.compressed;
-              if (compressed) {
-                payload.compressed = true;
-                return zlib.deflateAsync(JSON.stringify(d));
-              }
-              else return d;
-            })
-            
-            .then(function(d) {
-              payload.data = d;
-              payload.__caching__ = false;
-              if (d && d.error) payload.error = true;
-              return self.adapter.update(key,payload,expiry);
-            })
-            .then(function() {
-              payload.data = raw_data;
-              if (payload.error) throw payload.data;
-              else return options.payload ? payload : payload.data;
-            });
+    const finalize = async(err, d) => {
+      if (err) {
+        if (typeof err === 'string') err = {message:err};
+        // If the error is to be cached we transform into a JSON object
+        if (err && err.cache) {
+          d = Object.assign({}, err, {error: true});
         }
-
-        if (options.clues) {
-          return [ function $noThrow(_) { return fn; }, function(value) {
-            if (value.error)
-              value = Promise.reject(value);
-            return finalize(value);
-          }];
-        } else {
-          return finalize(Promise.fulfilled((typeof fn === 'function') ? Promise.try(fn) : fn));
+        // Otherwise we remove the key and throw directly
+        else {
+          await this.adapter.remove(key);
+          throw err;
         }
-      });
+      }
+  
+      const raw_data = d;
+      // Optional encryption
+      const passphrase = options.passphrase !== undefined ? options.passphrase : this.passphrase;
+      if (passphrase) {
+        payload.encrypted = true;
+        d = this.encrypt(d,passphrase);
+      } 
+
+      // Optional compression
+      const compressed = options.compressed !== undefined ? options.compressed : this.compressed;
+      if (compressed) {
+        payload.compressed = true;
+        d = await zlib.deflateAsync(JSON.stringify(d));
+      }
+      
+      payload.data = d;
+      payload.__caching__ = false;
+      if (d && d.error) payload.error = true;
+      await this.adapter.update(key,payload,expiry);
+       
+      payload.data = raw_data;
+      if (payload.error) throw payload.data;
+      else return options.payload ? payload : payload.data;
+    };
+
+    if (options.clues) {
+      return [ function $noThrow(_) { return fn; }, function(value) {
+        return value.error ? finalize(value) : finalize(null, value);
+      }];
+    } else {
+      try {
+        const data = (typeof fn === 'function') ? await Promise.try(fn) : fn;
+        return finalize(null, data);
+      } catch(e) {
+        return finalize(e);
+      }
+    }
+   
   }
 
-  info(key,options) {
-  return this.adapter.get(key,options)
-    .then(function(d) {
-      return d.info;
-    });
+  async info(key,options) {
+    if (this.adapter.then) this.adapter = await this.adapter;
+    const d = await this.adapter.get(key,options);
+    return d.info;
   }
 
-  cached (key,fn,options) {
+  async cached(key,fn,options) {
+    if (this.adapter.then) this.adapter = await this.adapter;
     options = options || {};
-    var self = this;
-     return this.get(key,options,0)
-      .then(function(d) {
-        return options.payload ? d : d.data;
-      },
-      function(e) {
-        if (e.message === 'KEY_NOT_FOUND') {
-          return self.set(key,fn,options)
-            .catch(function(err) {
-              // If we experienced a race situation we try to get the results
-              if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
-                return self.cached(key,fn,options);
-              else
-                throw err;
-            });
-        } else throw e;
-      });
+    try {
+      const d = await this.get(key,options,0);
+      return options.payload ? d : d.data;
+    } catch(e) {
+      if (e && e.message === 'KEY_NOT_FOUND') {
+        try {
+          return this.set(key,fn,options);
+        } catch(err) {
+          // If we experienced a race situation we try to get the results
+          if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)
+            return this.cached(key,fn,options);
+          else
+            throw err;
+        }
+      } else throw e;
+    }
   }
 
   encrypt(data,passphrase) {
     if (!passphrase) throw 'MISSING_PASSPHRASE';
-    var cipher = crypto.createCipher(this.algo ,passphrase);
+    const cipher = crypto.createCipher(this.algo ,passphrase);
     return cipher.update(JSON.stringify(data),'utf-8','base64') + cipher.final('base64');
   }
 
   decrypt(data,passphrase) {
     if (!passphrase) throw 'MISSING_PASSPHRASE';
-    var decipher = crypto.createDecipher(this.algo,passphrase);
+    const decipher = crypto.createDecipher(this.algo,passphrase);
     try {
       return JSON.parse(decipher.update(data,'base64','utf-8')+ decipher.final('utf-8'));
     } catch(e) {
