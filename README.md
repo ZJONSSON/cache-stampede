@@ -1,3 +1,17 @@
+[![NPM Version][npm-image]][npm-url]
+[![NPM Downloads][downloads-image]][downloads-url]
+[![Test Coverage][circle-image]][circle-url]
+[![Coverage][coverage-image]][coverage-url]
+
+[npm-image]: https://img.shields.io/npm/v/cache-stampede.svg
+[npm-url]: https://npmjs.org/package/cache-stampede
+[circle-image]: https://circleci.com/gh/ZJONSSON/cache-stampede.png?style=shield
+[circle-url]: https://circleci.com/gh/ZJONSSON/cache-stampede/tree/master
+[downloads-image]: https://img.shields.io/npm/dm/cache-stampede.svg
+[downloads-url]: https://npmjs.org/package/cache-stampede
+[coverage-image]: https://3tjjj5abqi.execute-api.us-east-1.amazonaws.com/prod/cache-stampede/badge
+[coverage-url]: https://3tjjj5abqi.execute-api.us-east-1.amazonaws.com/prod/cache-stampede/url
+
 # cache-stampede
 Most caching libraries do not place a variable into cache until its value has been resolved.  When multiple requests for the same key arrive at the same time, all of them will work on resolving the cached key (instead of only the first one) and then each of them will try to update the cache when resolved (i.e. [cache stampede](http://en.wikipedia.org/wiki/Cache_stampede)).   
 
