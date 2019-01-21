@@ -23,7 +23,7 @@ module.exports = async (t, cache) => t.test('When fn is async', async t => {
 
   t.test('`set` should error when db is __caching__', async t => {
     cache.cached('delay-testkey',testFn,{info:'TEST'});
-    await Promise.delay(10);
+    const set = await Promise.delay(50);
     let e = await cache.set('delay-testkey', 'New Value').then(shouldError(t), Object);
     t.same(e.message, 'KEY_EXISTS');
   });

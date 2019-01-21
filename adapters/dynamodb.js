@@ -57,60 +57,63 @@ const formatUpdate = d => {
 
 const Promise = require('bluebird');
 
-module.exports = function(client,prefix) {  
+module.exports = function(client,options) {
+  options = options || {};
   Promise.promisifyAll(client);  
-  prefix = prefix || 'cache';
+  let prefix = options.prefix || 'cache';
 
   return {    
-    get : function(key,options) {
+    get : async key => {
       const query = {
         TableName: prefix,
         Key: {
-          "id":  key
+          id:  key
         }
       };
-      return client.getAsync(query)
-        .then(d => deSerialize(d.Item));
+      const d = await client.get(query).promise();
+      return deSerialize(d.Item);
     },
 
-    insert : function(key,d) {
+    insert : async (key,d) => {
       d.key = key;
       d = serialize(d); 
       const query = {
         TableName: prefix,
         Item: d,
-        ConditionExpression: "attribute_not_exists(id)"
+        ConditionExpression: 'attribute_not_exists(id)'
       };
-      return client.putAsync(query)
-        .catch(err => {
-          if (err && err.code === 'ConditionalCheckFailedException')
-            throw new Error('KEY_EXISTS');
-          else
-            throw err;
-        });
+
+      try {
+        return await client.put(query).promise();
+      } catch(err) {
+        if (err && err.code === 'ConditionalCheckFailedException')
+          throw new Error('KEY_EXISTS');
+        else
+          throw err;
+      }
     },
 
-    update : function(key,d) {
+    update : (key,d) => {
       d = formatUpdate(d);
       const query = {
         TableName: prefix,
         Key: {
-          "id": key,
+          id: key,
         },
         UpdateExpression: d.UpdateExpression,
         ExpressionAttributeValues: d.ExpressionAttributeValues
       };
-      return client.updateAsync(query);
+      return client.update(query).promise();
     },
 
     remove : function(key) {
       const query = {
         TableName: prefix,
         Key: {
-          "id": key,
+          id: key,
         },
       };
-      return client.deleteAsync(query);
+      return client.delete(query).promise();
     }
   };
 };
