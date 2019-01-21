@@ -1,15 +1,17 @@
 module.exports = async (t, cache) => t.test('Basic test', async t => {
 
   const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
-  var result = 'This is the result of the basic test';
+  const result = 'This is the result of the basic test';
 
   function testFn() {
     return result;
   }
 
+  const adapter = await cache.adapter;
+
   await Promise.all([
-    cache.adapter.remove('testkey',{all: true}),
-    cache.adapter.remove('rawkey',{all: true})
+    adapter.remove('testkey',{all: true}),
+    adapter.remove('rawkey',{all: true})
   ]);
 
   t.test('on empty cache', async t => {
@@ -41,7 +43,7 @@ module.exports = async (t, cache) => t.test('Basic test', async t => {
 
   t.test('Caching with payload = true', async t => {
     t.test('`cached` returns the payload', async t => {
-      let d = await cache.cached('rawkey',testFn,{payload:true})
+      let d = await cache.cached('rawkey',testFn,{payload:true});
       t.same(d.data,result);
       t.same(d.__caching__,false);
       t.same(typeof d.updated.getMonth,'function');

@@ -6,13 +6,13 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
   
   const result = 'This is the result of the encrypted test';
 
-  function testFn() {
-    return result;
-  }
+  const adapter = await cache.adapter;
+
+  const testFn = () => result;
 
   await Promise.all([
-    cache.adapter.remove('encryptkey',{all: true}),
-    cache.adapter.remove('encryptkey2',{all: true})
+    adapter.remove('encryptkey',{all: true}),
+    adapter.remove('encryptkey2',{all: true})
   ]);
 
   t.test('passphrase in object', async t => {
@@ -23,7 +23,7 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
     });
 
     t.test('`adapter.get` returns encrypted data', async t => {
-      let d = await cache.adapter.get('encryptkey');      
+      let d = await adapter.get('encryptkey');      
       t.equal(d.__caching__,false);
       t.notEqual(d,result);
       t.equal(cache.decrypt(d.data,'testing123'),result);
@@ -71,7 +71,7 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
     });
 
     t.test('`adapter.get` returns encrypted data', async t => {
-      let d = await cache.adapter.get('encryptkey2');
+      let d = await adapter.get('encryptkey2');
       t.equal(d.__caching__,false);
       t.notEqual(d,result);
       t.equal(cache.decrypt(d.data,'newpassphrase'),result);

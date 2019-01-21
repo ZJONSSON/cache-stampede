@@ -1,93 +1,79 @@
-var Promise = require('bluebird');
+const Promise = require('bluebird');
 
-module.exports = function(collection) {
-  collection = Promise.resolve(collection).then(function(c) {
-    if (!c.findOneAsync) Promise.promisifyAll(c);
-    return c.ensureIndex({
-      key: 1,
-      updated: 1
-    },{
-      unique: true
-    })
-    .then(function() {
-      return c;
-    });
+module.exports = async function(collection) {
+  const c = await collection;
+  if (!c.findOneAsync) Promise.promisifyAll(c);
+  await c.ensureIndex({
+    key: 1,
+    updated: 1
+  },{
+    unique: true
   });
-  
+
   return {
-    get : function(key,options) {
+    get : async (key,options) => {
       options = options || {};
-      var criteria = {key: key};
+      let criteria = {key: key};
       if (options.find && Object.keys(options.find).length)
         criteria = {$or: [
           criteria,
           options.find
         ]};
 
-      return collection.then(function(c) {
-        return c.find(criteria)
+      
+      let d = await c.find(criteria)
         .sort({updated: -1})
         .limit(1)
-        .toArray()
-        .then(function(d) {
-          d = d[0];
-          if (d && d.data && d.data.buffer)
-            d.data = d.data.buffer;
-          return d;
-
-        });
-      });
-    },
-
-    getHistory : function(key) {
-      return collection.then(function(c) {
-        return c.find({
-          key: key,
-          __caching__: false
-        })
-        .sort({updated:1})
         .toArray();
-      });
+
+      d = d[0];
+      if (d && d.data && d.data.buffer)
+        d.data = d.data.buffer;
+      return d;
     },
 
-    insert : function(key,d) {
+    getHistory : async key => {
+      return c.find({
+        key: key,
+        __caching__: false
+      })
+      .sort({updated:1})
+      .toArray();
+    },
+
+    insert : async (key,d) => {
       d.key = key;
       if (d.__caching__)
         d.updated = Infinity;
-      return collection.then(function(c) {
-        return c.insertAsync(d,{w: 1})
-          .catch(function(err) {
-            if (err && err.message && err.message.indexOf('E11000') !== -1)
-              throw new Error('KEY_EXISTS');
-            else
-              throw err;
-          });
-      });
+      try {
+        await c.insertAsync(d,{w: 1});
+      } catch(err) {
+        if (err && err.message && err.message.indexOf('E11000') !== -1)
+          throw new Error('KEY_EXISTS');
+        else
+          throw err;
+      }
     },
 
     update : function(key,d) {
       d.key = key;
       d.updated = new Date();
-      return collection.then(function(c) {
-        return c.updateAsync({
-          key: key,
-          updated: Infinity
-        },d);
-      });
+      return c.updateAsync({
+        key: key,
+        updated: Infinity
+      },d);
     },
 
     remove : function(key,options) {
-      var criteria = {
+      const criteria = {
         key: key
       };
 
       if (!options || !options.all) criteria.updated = Infinity;
 
-      return collection.then(function(c) {
-        return c.removeAsync(criteria);
-      });
-    },
+      return c.removeAsync(criteria);
+    },    
 
-    close: () => collection.then(d => d.s.db.close())
+    close: () => c.s.db.close()
   };
 };

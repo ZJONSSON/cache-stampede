@@ -8,13 +8,13 @@ module.exports = async (t, cache) => t.test('Compressed', async t => {
   
   const result = 'This is the result of the encrypted test';
 
-  function testFn() {
-    return result;
-  }
+  const adapter = await cache.adapter;
+
+  const testFn =() => result; 
 
   await Promise.all([
-    cache.adapter.remove('compresskey1',{all: true}),
-    cache.adapter.remove('compresskey2',{all: true})
+    adapter.remove('compresskey1',{all: true}),
+    adapter.remove('compresskey2',{all: true})
   ]);
 
   t.test('first `cached` should return output', async t => {
@@ -23,8 +23,9 @@ module.exports = async (t, cache) => t.test('Compressed', async t => {
   });
 
   t.test('`adapter.get` returns encrypted data', async t => {
-    let d = await cache.adapter.get('compresskey1');
-    const data = await zlib.inflateAsync(d.data).then(d => JSON.parse(d));
+    let d = await adapter.get('compresskey1');
+    let data = await zlib.inflateAsync(d.data);
+    data = JSON.parse(data);
     t.same(data, result);
     t.same(d.__caching__,false);
     t.notEqual(d.data,result);
@@ -54,7 +55,7 @@ module.exports = async (t, cache) => t.test('Compressed', async t => {
     });
 
      t.test('`adapter.get` returns encrypted data', async t => {
-      let d = await cache.adapter.get('compresskey2');
+      let d = await adapter.get('compresskey2');
       let encrypted = await zlib.inflateAsync(d.data);
       let data = await cache.decrypt(encrypted.toString(), 'abc123');
       t.same(data, result);

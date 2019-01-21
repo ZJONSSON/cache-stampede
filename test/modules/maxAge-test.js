@@ -5,9 +5,11 @@ const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.s
 const shouldNotRun = t =>() => t.fail('Should not run');
 
 module.exports = async (t, cache) => t.test('With defined maxAge', async t => {
-  var result = 'This is the result of the expiry test';
+  const result = 'This is the result of the expiry test';
+
+  const adapter = await cache.adapter;
   
-  await cache.adapter.remove('maxage-test');
+  await adapter.remove('maxage-test');
 
   t.test('on empty cache', async t => {
     t.test('`get` should error', async t => {

@@ -7,12 +7,14 @@ module.exports = async (t, cache) => t.test('Clues formula', async t => {
   
   cache.clues = true;
 
+  const adapter = await cache.adapter;
+
   await Promise.all([
-    cache.adapter.remove('clues-testkey',{all: true}),
-    cache.adapter.remove('clues-testkey2',{all: true}),
-    cache.adapter.remove('clues-testkey3',{all: true}),
-    cache.adapter.remove('clues-testkey4',{all: true}),
-    cache.adapter.remove('clues-testkey5',{all: true})
+    adapter.remove('clues-testkey',{all: true}),
+    adapter.remove('clues-testkey2',{all: true}),
+    adapter.remove('clues-testkey3',{all: true}),
+    adapter.remove('clues-testkey4',{all: true}),
+    adapter.remove('clues-testkey5',{all: true})
   ]);
 
   /*t.test('regular formula returns value', async t => {
@@ -62,7 +64,7 @@ module.exports = async (t, cache) => t.test('Clues formula', async t => {
 
 
   t.test('works for array-defined-formula', async t => {
-    var logic = {
+    const logic = {
       a: 41,
       value: function() {
         return cache.cached('clues-testkey4',['a',function(d) { return d+1;}],{clues: true});

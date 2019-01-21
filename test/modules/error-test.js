@@ -3,6 +3,8 @@ const Promise = require('bluebird');
 const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
 
 module.exports = async (t, cache) => t.test('Function with non-caching error', async t => {
+
+  const adapter = await cache.adapter;
   
   const testFn = async () => {
     await Promise.delay(500);
@@ -10,8 +12,8 @@ module.exports = async (t, cache) => t.test('Function with non-caching error', a
   };
 
   await Promise.all([
-    cache.adapter.remove('error-testkey',{all: true}),
-    cache.adapter.remove('error-testkey2',{all: true})
+    adapter.remove('error-testkey',{all: true}),
+    adapter.remove('error-testkey2',{all: true})
   ]);
 
   t.test('`set` should fail when db is still __caching__', async t =>{

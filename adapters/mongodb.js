@@ -1,9 +1,10 @@
-module.exports = function(collection) {  
+module.exports = async function(collection) {
+  const c = await collection;
 
   return {    
-    get : function(key,options) {
+    get : async(key,options) => {
       options = options || {};
-      var criteria = {_id: key};
+      let criteria = {_id: key};
 
       if (options.find) {
         criteria = {$or: [
@@ -12,42 +13,33 @@ module.exports = function(collection) {
         ]};
       }
 
-      return collection.then(function(c) {
-        return c.findOne(criteria)
-          .then(function(d) {
-            if (d && d.data && d.data.buffer)
-              d.data = d.data.buffer;
-            return d;
-          });
-      });
+      const d = await c.findOne(criteria);
+      if (d && d.data && d.data.buffer)
+        d.data = d.data.buffer;
+      return d;
     },
 
-    insert : function(key,d) {
+    insert : async (key,d) => {
       d._id = key;
-      return collection.then(function(c) {
-        return c.insert(d,{w: 1})
-          .catch(function(err) {
-            if (err && err.message && err.message.indexOf('E11000') !== -1)
-              throw new Error('KEY_EXISTS');
-            else
-              throw err;
-          });
-      });
+      try {
+        await c.insert(d,{w: 1});
+      } catch(err) {
+        if (err && err.message && err.message.indexOf('E11000') !== -1)
+          throw new Error('KEY_EXISTS');
+        else
+          throw err;
+      }
     },
 
-    update : function(key,d) {
+    update : (key,d) => {
       d._id = key;
-      return collection.then(function(c) {
-        return c.update({_id:key},d,{upsert:true});
-      });
+      return c.update({_id:key},d,{upsert:true});
     },
 
-    remove : function(key) {
-      return collection.then(function(c) {
-        return c.remove({_id:key});
-      });
+    remove : async key => {
+      return await new Promise((resolve, reject) =>c.remove({_id:key}, (err,d) => err ? reject(err) : resolve(d)));
     },
 
-    close: () => collection.then(d => d.s.db.close())
+    close: () => c.s.db.close()
   };
 };

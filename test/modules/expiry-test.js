@@ -5,13 +5,13 @@ const Promise = require('bluebird');
 
 module.exports = async (t, cache) => t.test('With defined expiry', async t => {
 
+  const adapter = await cache.adapter;
+
   const result = 'This is the result of the expiry test';
   
-  function testFn() {
-    return result;
-  }
+  const testFn = () => result;
 
-  await cache.adapter.remove('expiry-test',{all: true});
+  await adapter.remove('expiry-test',{all: true});
 
   t.test('on empty cache',async t => {
     t.test('`get` should error', async t => {

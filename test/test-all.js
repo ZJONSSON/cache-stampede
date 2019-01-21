@@ -15,13 +15,7 @@ const tests = fs.readdirSync(path.join(__dirname,'modules'))
 
 // Define caches for each adaptor
 var caches = {
- mongo : async () => {
-    const mongodb = require('mongodb');
-    Promise.promisifyAll(mongodb.MongoClient);
-    const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-    return stampede.mongo(client.collection('stampede_tests'));
-  },
-  
+
   mongoHistory : async () => {
     const mongodb = require('mongodb');
     Promise.promisifyAll(mongodb.MongoClient);
@@ -47,10 +41,10 @@ var caches = {
     return stampede.redis(redis);
   },
 
-  /*dynamodb : async () => {
+  dynamodb : async () => {
     const AWS = require('aws-sdk');
     const dynamodbSchema = require('./dynamodb_schema');
-    AWS.config.update({ region: 'us-east-1', endpoint: new AWS.Endpoint('http://dynamodb:8000') });
+    AWS.config.update({ region: 'us-east-1','accessKeyId': 'local', 'secretAccessKey': 'local',  endpoint: 'http://172.18.0.2:8000'});
     var dynamodb = new AWS.DynamoDB();
     try {
       await dynamodb.deleteTable({TableName:dynamodbSchema.TableName}).promise();
@@ -71,8 +65,8 @@ var caches = {
     }
 
     return stampede.dynamodb(new AWS.DynamoDB.DocumentClient());
-  }
-
+  },
+/*
   gcloudDatastore : () => {
     const gcloudDatastore = require('@google-cloud/datastore')({
       projectId: process.env.DATASTORE_PROJECT_ID,
