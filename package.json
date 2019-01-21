@@ -1,10 +1,11 @@
 {
   "name": "cache-stampede",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "docker-compose -p stampede up -d --no-recreate;docker exec -it stampede_runner_1 bash ./test.sh",
+    "testLocal": "bash ./test.sh"
   },
   "author": "Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com> (https://github.com/zjonsson/)",
   "repository": {
@@ -18,10 +19,11 @@
   },
   "devDependencies": {
     "@google-cloud/datastore": "1.0.1",
-    "aws-sdk": "^2.12.0",
-    "mocha": "~3.0.2",
+    "aws-sdk": "^2.391.0",
     "mongodb": "^2.2.11",
     "mongoose": "~4.6.4",
-    "redis": "~2.6.2"
+    "redis": "~2.6.2",
+    "tap": "^12.1.1",
+    "minimist": "^1.2.0"
   }
 }

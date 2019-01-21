@@ -1,36 +1,31 @@
-var assert = require('assert'),
-    Promise = require('bluebird');
+const Promise = require('bluebird');
 
-function shouldNotRun() { throw 'Should not run';}
-function shouldError() { throw 'Should have errored';}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
+const shouldNotRun = t => () => t.fail('Should not run');
 
-module.exports = function() {
-  function testFn() {
-    return Promise.delay(500)
-      .then(function() {
-        throw {message:'Error',cache:true};
-      });
-  }
 
-  before(function() {
-    return this.cache.adapter.remove('errorcache-testkey',{all: true});
+module.exports = async (t, cache) => t.test('Error with `cache` as true', async t => {
+  
+  const testFn = async () => {
+    await Promise.delay(500);
+    throw {message:'Error',cache:true};
+  };
+  
+  await cache.adapter.remove('errorcache-testkey',{all: true});
+
+  t.test('should return as rejected promise',async t => {
+    let e = await cache.cached('errorcache-testkey',testFn).then(d => t.fail(`Should error '${d}`), Object);
+    t.same(e.message, 'Error');
   });
 
-  describe('Error with `cache` as true',function() {
-    it('should return as rejected promise',function() {
-      return this.cache.cached('errorcache-testkey',testFn)
-        .then(shouldError,errorMsg('Error'));
-    });
-
-    it('second `cache` should return same rejection from cache',function() {
-      return this.cache.cached('errorcache-testkey',shouldNotRun)
-        .then(shouldError,errorMsg('Error'));
-    });
-
-    it('`get` should return same rejection',function() {
-      return this.cache.get('errorcache-testkey')
-        .then(shouldError,errorMsg('Error'));
-    });
+  t.test('second `cache` should return same rejection from cache', async t => {
+    let e = await cache.cached('errorcache-testkey',shouldNotRun(t)).then(d => t.fail(`Should error '${JSON.stringify(d)}`), Object);
+    t.same(e.message, 'Error');
   });
-};
+
+  t.test('`get` should return same rejection', async t => {
+    let e = await cache.get('errorcache-testkey').then(d => t.fail(`Should error '${d}`), Object);
+    t.same(e.message, 'Error');
+  });
+  
+  t.end();
+});

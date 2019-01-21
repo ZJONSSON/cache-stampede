@@ -1,65 +1,55 @@
-var Promise = require('bluebird'),
-    assert = require('assert');
+const Promise = require('bluebird');
 
-function shouldNotRun() { throw 'Should not run';}
-function shouldError() { throw 'Should have errored';}
-function shouldEqual(value) { return function(d) { assert.equal(d,value);};}
-function errorMsg(msg) { return function(e) { assert.equal(e.message,msg);};}
+  const shouldError = t => d => t.fail(`Should error instead of returning ${JSON.stringify(d)}`);
+  const shouldNotRun = t =>() => t.fail('Should not run');
 
-module.exports = function() {
-  var result = 'This is the result of the expiry test';
+module.exports = async (t, cache) => t.test('With defined expiry', async t => {
+
+  const result = 'This is the result of the expiry test';
   
   function testFn() {
     return result;
   }
 
-  before(function() {
-    return this.cache.adapter.remove('expiry-test',{all: true});
-  });
+  await cache.adapter.remove('expiry-test',{all: true});
 
-  describe('With defined expiry',function() {
-    describe('on empty cache',function() {
-      it('`get` should error',function() {
-        return this.cache.get('expiry-test')
-          .then(shouldError,errorMsg('KEY_NOT_FOUND'));
-      });
-
-      it('`cached` should return function output',function() {
-        return this.cache.cached('expiry-test',testFn,{expiry:200})
-          .then(shouldEqual(result));
-      });
+  t.test('on empty cache',async t => {
+    t.test('`get` should error', async t => {
+      let e = await cache.get('expiry-test').then(shouldError(t), Object);
+      t.same(e.message, 'KEY_NOT_FOUND');
     });
 
-    describe('after first `cached`, ',function() {
-      it('second `cached` should return from cache',function() {
-        return this.cache.cached('expiry-test',shouldNotRun,{expiry:200})
-          .then(shouldEqual(result));
-      });
-      it('`get` should return from cache',function() {
-        return this.cache.get('expiry-test',shouldNotRun,{expiry:200})
-          .then(function(d) {
-            assert.equal(d.data,result);
-          });
-      });
-    });
-
-    describe('after cache expired',function() {
-      it('`cached` should re-run function',function() {
-        var self = this;
-        return Promise.delay(200)
-          .then(function() {
-            return self.cache.cached('expiry-test',function() { return 'UPDATED_VALUE';},{expiry:200});
-          })
-          .then(shouldEqual('UPDATED_VALUE'));
-      });
-
-      it('and `get` return updated value',function() {
-        return this.cache.get('expiry-test')
-          .then(function(d) {
-            assert.equal(d.data,'UPDATED_VALUE');
-          });
-      });
-      
+    t.test('`cached` should return function output', async t => {
+      let d = await cache.cached('expiry-test',testFn,{expiry:200});
+      t.same(d, result);
     });
   });
-};
+
+  t.test('after first `cached`, ', async t => {
+    t.test('second `cached` should return from cache', async t => {
+      let d = await cache.cached('expiry-test',shouldNotRun(t),{expiry:200});
+      t.same(d, result);
+    });
+
+    t.test('`get` should return from cache', async t => {
+      let d = await cache.get('expiry-test',shouldNotRun(t),{expiry:200});
+      t.same(d.data, result);
+    });
+  });
+
+  t.test('after cache expired', async t => {
+    t.test('`cached` should re-run function', async t => {
+      await Promise.delay(200);
+      let d = await cache.cached('expiry-test',function() { return 'UPDATED_VALUE';},{expiry:200});
+      t.same(d, 'UPDATED_VALUE');
+    });
+
+    t.test('and `get` return updated value', async t => {
+      let d = await cache.get('expiry-test');
+      t.same(d.data, 'UPDATED_VALUE');
+    });
+ 
+  });
+
+  t.end();
+});

@@ -1,24 +1,12 @@
-machine:
-  services:
-    - redis
-  node:
-    version: 6.9.5
-  environment:
-    _JAVA_OPTIONS: "-Xms512m -Xmx1024m"
-  java:
-    version: openjdk7
-  post:
-    - curl -k -L -o dynamodb-local.tgz http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
-    - tar -xzf dynamodb-local.tgz
-    - java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb:
-        background: true
-    - echo -e "testid\ntestkey\nus-east-1\njson" | aws configure
-    - echo -e "Y\n" | sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init --quiet || true
-    - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore start --quiet --project=local:
-        background: true
-    - sudo /opt/google-cloud-sdk/bin/gcloud beta emulators datastore env-init > $HOME/datastoreenv;
-test:
-  override:
-    - |
-      cat $HOME/datastoreenv && $(cat $HOME/datastoreenv)
-      npm t
+version: 2 # CircleCI version
+jobs:
+  build:
+    machine: true # Use a Linux VM instead of docker environment
+    working_directory:  ~/cache-stampede # Default working directory, where your project will be cloned
+    steps:
+      - checkout
+      - run: docker-compose -p stampede up -d
+      - run: mkdir .docker_node_modules || true
+      - run: npm test
+      - store_artifacts:
+          path: coverage/lcov-report
