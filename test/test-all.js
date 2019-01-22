@@ -44,7 +44,7 @@ var caches = {
   dynamodb : async () => {
     const AWS = require('aws-sdk');
     const dynamodbSchema = require('./dynamodb_schema');
-    AWS.config.update({ region: 'us-east-1','accessKeyId': 'local', 'secretAccessKey': 'local',  endpoint: 'http://172.18.0.2:8000'});
+    AWS.config.update({ region: 'us-east-1','accessKeyId': 'local', 'secretAccessKey': 'local',  endpoint: 'http://dynamodb:8000'});
     var dynamodb = new AWS.DynamoDB();
     try {
       await dynamodb.deleteTable({TableName:dynamodbSchema.TableName}).promise();
