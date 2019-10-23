@@ -21,7 +21,7 @@
     "@google-cloud/datastore": "1.0.1",
     "aws-sdk": "^2.391.0",
     "mongodb": "^2.2.11",
-    "mongoose": "~4.6.4",
+    "mongoose": "~5.7.6",
     "redis": "~2.6.2",
     "tap": "^12.1.1",
     "minimist": "^1.2.0"
