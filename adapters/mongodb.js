@@ -1,3 +1,5 @@
+const Promise = require('bluebird');
+
 module.exports = async function(collection) {
   const c = await collection;
 

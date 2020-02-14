@@ -18,6 +18,7 @@ class Stampede {
     this.adapter = options.adapter || this.adapter;
     // Bind the cached function to make it passable directly to consumers of the cache
     this.cached = this.cached.bind(this);
+    this.Promise = options.Promise || Promise;
     if (!this.adapter) throw 'Missing adapter';
   }
 
