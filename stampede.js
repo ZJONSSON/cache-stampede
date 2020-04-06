@@ -159,7 +159,7 @@ class Stampede {
     } catch(e) {
       if (e && e.message === 'KEY_NOT_FOUND') {
         try {
-          return this.set(key,fn,options);
+          return await this.set(key,fn,options);
         } catch(err) {
           // If we experienced a race situation we try to get the results
           if (err && err.message && String(err.message).indexOf('KEY_EXISTS') !== -1)

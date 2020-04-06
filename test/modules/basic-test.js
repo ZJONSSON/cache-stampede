@@ -11,7 +11,8 @@ module.exports = async (t, cache) => t.test('Basic test', async t => {
 
   await Promise.all([
     adapter.remove('testkey',{all: true}),
-    adapter.remove('rawkey',{all: true})
+    adapter.remove('rawkey',{all: true}),
+    adapter.remove('race', {all: true})
   ]);
 
   t.test('on empty cache', async t => {
@@ -65,6 +66,15 @@ module.exports = async (t, cache) => t.test('Basic test', async t => {
        
     d = await cache.cached('prekey1',function() { throw 'Should not run';},{payload:true, preCache:{prekey1:{data:42}}});       
     t.same(d.data,42, 'returns available value raw');
+  });
+
+  t.test('Race conditions', async t => {
+    let i = 1;
+    const results = await Promise.all([...Array(100)].map( async () => {
+      return await cache.cached('race', () => new Promise(resolve => setTimeout(() => resolve(i++),400)));
+    }));
+    t.ok(results.every(d => d == 1) && i == 2,'are managed propertly');
+    t.end();
   });
 
   t.end();
