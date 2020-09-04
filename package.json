@@ -20,7 +20,7 @@
   "devDependencies": {
     "@google-cloud/datastore": "1.0.1",
     "aws-sdk": "^2.391.0",
-    "mongodb": "^2.2.11",
+    "mongodb": "^3.6.1",
     "mongoose": ">=5.7.5",
     "redis": "~2.6.2",
     "tap": "^12.1.1",
