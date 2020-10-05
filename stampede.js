@@ -20,10 +20,15 @@ class Stampede {
     this.cached = this.cached.bind(this);
     this.Promise = options.Promise || Promise;
     if (!this.adapter) throw 'Missing adapter';
+    if (this.adapter.then) {
+      this.adapter = this.adapter.then(a => {
+        this.adapter = a;
+      });
+    }
   }
 
   async get(key,options,retry) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (this.adapter.then) await this.adapter;
     let value;
 
     retry = retry || 0;
@@ -76,7 +81,7 @@ class Stampede {
   }
 
   async set(key,fn,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (this.adapter.then) await this.adapter;
     options = options || {};
 
     const payload = {
@@ -145,13 +150,13 @@ class Stampede {
   }
 
   async info(key,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (this.adapter.then) await this.adapter;
     const d = await this.adapter.get(key,options);
     return d.info;
   }
 
   async cached(key,fn,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (this.adapter.then) await this.adapter;
     options = options || {};
     try {
       const d = await this.get(key,options,0);
