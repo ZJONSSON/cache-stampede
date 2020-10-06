@@ -107,7 +107,8 @@ module.exports = async t => {
         await test(t,cache,name);
       }
 
-      if (cache.adapter.close)  cache.adapter.close();
+      let adapter = await cache.adapter;
+      if (adapter.close) adapter.close();
       t.end();
     });  
 

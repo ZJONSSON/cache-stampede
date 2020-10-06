@@ -15,15 +15,22 @@ class Stampede {
     this.expiry = options.expiry;
     this.passphrase = options.passphrase;
     this.algo = options.algo || 'aes192';
-    this.adapter = options.adapter || this.adapter;
+
+    if (!options.adapter) throw 'Missing adapter';
+    this.adapter = Promise.resolve(options.adapter);
+
     // Bind the cached function to make it passable directly to consumers of the cache
     this.cached = this.cached.bind(this);
     this.Promise = options.Promise || Promise;
-    if (!this.adapter) throw 'Missing adapter';
+  }
+
+  async setup() {
+    this._adapter = await this.adapter;
+    this._hasSetup = true;
   }
 
   async get(key,options,retry) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (!this._hasSetup) await this.setup();
     let value;
 
     retry = retry || 0;
@@ -36,7 +43,7 @@ class Stampede {
     if (options.preCache && options.preCache[key] !== undefined)
       value = await options.preCache[key];
 
-    let d =  ( value  || await this.adapter.get(key,options));
+    let d =  ( value  || await this._adapter.get(key,options));
     if (!d) keyNotFound();
 
     const updated = +(new Date(d.updated));
@@ -48,7 +55,7 @@ class Stampede {
 
     if (expired || aged || retryExpiry) {
       d = undefined;
-      await this.adapter.remove(key);
+      await this._adapter.remove(key);
       keyNotFound();
     }
 
@@ -76,7 +83,7 @@ class Stampede {
   }
 
   async set(key,fn,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (!this._hasSetup) await this.setup();
     options = options || {};
 
     const payload = {
@@ -88,7 +95,7 @@ class Stampede {
     const expiry = options.expiry || this.expiry;
     if (expiry) payload.expiryTime = new Date().valueOf() + expiry;
 
-    await (options.upsert ? this.adapter.update(key,payload,expiry) : this.adapter.insert(key,payload,expiry));
+    await (options.upsert ? this._adapter.update(key,payload,expiry) : this._adapter.insert(key,payload,expiry));
 
     const finalize = async(err, d) => {
       if (err) {
@@ -99,7 +106,7 @@ class Stampede {
         }
         // Otherwise we remove the key and throw directly
         else {
-          await this.adapter.remove(key);
+          await this._adapter.remove(key);
           throw err;
         }
       }
@@ -122,7 +129,7 @@ class Stampede {
       payload.data = d;
       payload.__caching__ = false;
       if (d && d.error) payload.error = true;
-      await this.adapter.update(key,payload,expiry);
+      await this._adapter.update(key,payload,expiry);
        
       payload.data = raw_data;
       if (payload.error) throw payload.data;
@@ -145,13 +152,13 @@ class Stampede {
   }
 
   async info(key,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
-    const d = await this.adapter.get(key,options);
+    if (!this._hasSetup) await this.setup();
+    const d = await this._adapter.get(key,options);
     return d.info;
   }
 
   async cached(key,fn,options) {
-    if (this.adapter.then) this.adapter = await this.adapter;
+    if (!this._hasSetup) await this.setup();
     options = options || {};
     try {
       const d = await this.get(key,options,0);
