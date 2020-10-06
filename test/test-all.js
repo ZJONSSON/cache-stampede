@@ -96,9 +96,12 @@ module.exports = async t => {
   const reTest = argv.test && new RegExp(argv.test);
 
   for (let name in caches) {
+    console.log(`testing ${name}`);
     if (reAdapter && !reAdapter.test(name)) continue;
 
     const cache = await caches[name]();
+
+    console.log('prepped cache');
 
     await t.test(name, async t => {
       for (var i in tests) {
@@ -107,7 +110,8 @@ module.exports = async t => {
         await test(t,cache,name);
       }
 
-      if (cache.adapter.close)  cache.adapter.close();
+      let adapter = await cache.adapter;
+      if (adapter.close) adapter.close();
       t.end();
     });  
 

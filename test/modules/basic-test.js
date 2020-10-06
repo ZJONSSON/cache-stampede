@@ -7,8 +7,7 @@ module.exports = async (t, cache) => t.test('Basic test', async t => {
     return result;
   }
 
-  await cache.adapter;
-  const adapter = cache.adapter;
+  const adapter = await cache.adapter;
 
   await Promise.all([
     adapter.remove('testkey',{all: true}),
