@@ -96,12 +96,9 @@ module.exports = async t => {
   const reTest = argv.test && new RegExp(argv.test);
 
   for (let name in caches) {
-    console.log(`testing ${name}`);
     if (reAdapter && !reAdapter.test(name)) continue;
 
     const cache = await caches[name]();
-
-    console.log('prepped cache');
 
     await t.test(name, async t => {
       for (var i in tests) {
