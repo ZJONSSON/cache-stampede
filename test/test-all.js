@@ -27,8 +27,15 @@ var caches = {
     const mongodb = require('mongodb');
     Promise.promisifyAll(mongodb.MongoClient);
     const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-     return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
+    return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
   },
+
+  // mongodb_with_writes : async () => {
+  //   const mongodb = require('mongodb');
+  //   Promise.promisifyAll(mongodb.MongoClient);
+  //   const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
+  //   return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
+  // },
 
   mongoose : () => {
     const mongoose = require('mongoose');

@@ -129,7 +129,7 @@ class Stampede {
       payload.data = d;
       payload.__caching__ = false;
       if (d && d.error) payload.error = true;
-      await this._adapter.update(key,payload,expiry);
+      await this._adapter.update(key,payload,expiry,true);
        
       payload.data = raw_data;
       if (payload.error) throw payload.data;
