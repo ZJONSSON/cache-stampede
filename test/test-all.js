@@ -30,13 +30,6 @@ var caches = {
     return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
   },
 
-  // mongodb_with_writes : async () => {
-  //   const mongodb = require('mongodb');
-  //   Promise.promisifyAll(mongodb.MongoClient);
-  //   const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-  //   return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
-  // },
-
   mongoose : () => {
     const mongoose = require('mongoose');
     mongoose.connect('mongodb://mongodb:27017/stampede_tests');
@@ -120,6 +113,9 @@ module.exports = async t => {
     });  
 
   }
+
+  await t.test('mongodb fnExecute', t => ((require('./mongodb-fn-execute'))(t)));
+
   t.end();
 };
 
