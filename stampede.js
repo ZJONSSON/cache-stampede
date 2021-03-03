@@ -131,16 +131,13 @@ class Stampede {
       payload.__caching__ = false;
       if (d && d.error) payload.error = true;
 
-      let whenExecutedPromise;
+      let updatePromise = this._adapter.update(key,payload,expiry);
+
       if (this.whenFnExecuted) {
-        whenExecutedPromise = this.whenFnExecuted(key, payload);
+        await this.whenFnExecuted(key, payload);
       }
 
-      await this._adapter.update(key,payload,expiry);
-
-      if (whenExecutedPromise) {
-        await whenExecutedPromise;
-      }
+      await updatePromise;
        
       payload.data = raw_data;
       if (payload.error) throw payload.data;
