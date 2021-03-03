@@ -1,7 +1,6 @@
 const Promise = require('bluebird');
 
-module.exports = async function(collection, opt) {
-  opt = opt || {};
+module.exports = async function(collection) {
   const c = await collection;
 
   return {    
@@ -34,22 +33,9 @@ module.exports = async function(collection, opt) {
       }
     },
 
-    update : (key,d,expiry,fnHasExecuted) => {
+    update : (key,d) => {
       d._id = key;
-
-      let whenExecutedPromise;
-      if (fnHasExecuted && opt.whenFnExecuted) {
-        whenExecutedPromise = opt.whenFnExecuted(key, d);
-      }
-
-      let updateResult = c.update({_id:key},d,{upsert:true});
-
-      if (whenExecutedPromise) {
-        // make sure to start both promises before waiting on result
-        return whenExecutedPromise.then(() => updateResult);
-      }
-
-      return updateResult;
+      return c.update({_id:key},d,{upsert:true});
     },
 
     remove : async key => {
