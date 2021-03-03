@@ -10,6 +10,7 @@ const keyNotFound = () => { throw new Error('KEY_NOT_FOUND');};
 class Stampede {
   constructor(options) {
     options = this.options = options || {};
+    this.whenFnExecuted = options.whenFnExecuted;
     this.retryDelay = (options.retryDelay !== undefined) ? options.retryDelay : 100;
     this.maxRetries = (options.maxRetries !== undefined) ? options.maxRetries : 5;
     this.expiry = options.expiry;
@@ -129,7 +130,14 @@ class Stampede {
       payload.data = d;
       payload.__caching__ = false;
       if (d && d.error) payload.error = true;
-      await this._adapter.update(key,payload,expiry);
+
+      let updatePromise = this._adapter.update(key,payload,expiry);
+
+      if (this.whenFnExecuted) {
+        await this.whenFnExecuted(key, payload);
+      }
+
+      await updatePromise;
        
       payload.data = raw_data;
       if (payload.error) throw payload.data;

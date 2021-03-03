@@ -3,6 +3,7 @@ const path = require('path');
 const stampede = require('../index');
 const Promise = require('bluebird');
 const minimist = require('minimist');
+const fnExecute = require('./mongodb-fn-execute')
 
 // Require in all tests in the modules directory
 const tests = fs.readdirSync(path.join(__dirname,'modules'))
@@ -16,32 +17,32 @@ const tests = fs.readdirSync(path.join(__dirname,'modules'))
 // Define caches for each adaptor
 var caches = {
 
-  mongoHistory : async () => {
+  mongoHistory : async options => {
     const mongodb = require('mongodb');
     Promise.promisifyAll(mongodb.MongoClient);
     const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-    return stampede.mongoHistory(client.collection('stampede_history_tests'));
+    return stampede.mongoHistory(client.collection('stampede_history_tests'), options);
   },
 
-  mongodb : async () => {
+  mongodb : async options => {
     const mongodb = require('mongodb');
     Promise.promisifyAll(mongodb.MongoClient);
     const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-     return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')));
+    return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')), options);
   },
 
-  mongoose : () => {
+  mongoose : options => {
     const mongoose = require('mongoose');
     mongoose.connect('mongodb://mongodb:27017/stampede_tests');
-    return stampede.mongoose('stampede_tests_mongoose',{mongoose:mongoose});
+    return stampede.mongoose('stampede_tests_mongoose',Object.assign({}, options || {}, {mongoose:mongoose}));
   },
 
-  redis : () => {
+  redis : options => {
     const redis = require('redis').createClient({host: 'redis'});
-    return stampede.redis(redis);
+    return stampede.redis(redis, options);
   },
 
-  dynamodb : async () => {
+  dynamodb : async options => {
     const AWS = require('aws-sdk');
     const dynamodbSchema = require('./dynamodb_schema');
     AWS.config.update({ region: 'us-east-1','accessKeyId': 'local', 'secretAccessKey': 'local',  endpoint: 'http://dynamodb:8000'});
@@ -64,7 +65,7 @@ var caches = {
       }
     }
 
-    return stampede.dynamodb(new AWS.DynamoDB.DocumentClient());
+    return stampede.dynamodb(new AWS.DynamoDB.DocumentClient(), options);
   },
 /*
   gcloudDatastore : () => {
@@ -82,7 +83,7 @@ var caches = {
   },
   */
 
-  file : () => stampede.file(path.join(__dirname,'filecache'))
+  file : options => stampede.file(path.join(__dirname,'filecache'), options)
 };
 
 
@@ -107,12 +108,18 @@ module.exports = async t => {
         await test(t,cache,name);
       }
 
+      // run fn execute tasks which need to create a new adapter
+      // the mongoose adapter doesn't do well if we `.close` it then try to reopen....
+      // so do this before we close the original adapter....
+      await fnExecute(t, caches[name]);
+
       let adapter = await cache.adapter;
       if (adapter.close) adapter.close();
+
       t.end();
     });  
-
   }
+
   t.end();
 };
 
