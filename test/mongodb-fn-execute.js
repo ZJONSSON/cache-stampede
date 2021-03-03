@@ -1,9 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const stampede = require('../index');
 const Promise = require('bluebird');
-
-
 
 module.exports = async (t, createCacheCb) => t.test('Fn Execute', async t => {
 

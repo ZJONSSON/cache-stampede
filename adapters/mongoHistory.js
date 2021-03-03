@@ -1,7 +1,6 @@
 const Promise = require('bluebird');
 
 module.exports = async function(collection) {
-
   const c = await collection;
   if (!c.findOneAsync) Promise.promisifyAll(c);
   await c.ensureIndex({
@@ -59,7 +58,6 @@ module.exports = async function(collection) {
     update : function(key,d) {
       d.key = key;
       d.updated = new Date();
-
       return c.updateAsync({
         key: key,
         updated: Infinity
