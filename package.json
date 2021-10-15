@@ -13,9 +13,9 @@
     "url": "http://github.com/ZJONSSON/cache-stampede.git"
   },
   "license": "MIT",
-  "dependencies": {
-    "bluebird": "~3.7.2",
-    "clues": "~4.0.3"
+  "peerDependencies": {
+    "bluebird": "^3.7.2",
+    "clues": "^4.0.3"
   },
   "devDependencies": {
     "@google-cloud/datastore": "1.0.1",

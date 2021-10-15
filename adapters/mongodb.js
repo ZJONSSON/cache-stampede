@@ -35,7 +35,7 @@ module.exports = async function(collection) {
 
     update : (key,d) => {
       d._id = key;
-      return c.updateOne({_id:key},{ $set: d },{upsert:true});
+      return c.replaceOne({_id:key},d,{upsert:true});
     },
 
     remove : async key => {

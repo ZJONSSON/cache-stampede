@@ -57,10 +57,10 @@ module.exports = async function(collection) {
     update : function(key,d) {
       d.key = key;
       d.updated = new Date();
-      return c.updateOne({
+      return c.replaceOne({
         key: key,
         updated: Infinity
-      }, { $set: d });
+      }, d);
     },
 
     remove : function(key,options) {
