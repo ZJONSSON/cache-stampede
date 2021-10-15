@@ -2,8 +2,7 @@ const Promise = require('bluebird');
 
 module.exports = async function(collection) {
   const c = await collection;
-  if (!c.findOneAsync) Promise.promisifyAll(c);
-  await c.ensureIndex({
+  await c.createIndex({
     key: 1,
     updated: 1
   },{
@@ -46,7 +45,7 @@ module.exports = async function(collection) {
       if (d.__caching__)
         d.updated = Infinity;
       try {
-        await c.insertAsync(d,{w: 1});
+        await c.insertOne(d,{w: 1});
       } catch(err) {
         if (err && err.message && err.message.indexOf('E11000') !== -1)
           throw new Error('KEY_EXISTS');
@@ -58,10 +57,10 @@ module.exports = async function(collection) {
     update : function(key,d) {
       d.key = key;
       d.updated = new Date();
-      return c.updateAsync({
+      return c.updateOne({
         key: key,
         updated: Infinity
-      },d);
+      }, { $set: d });
     },
 
     remove : function(key,options) {
@@ -71,9 +70,9 @@ module.exports = async function(collection) {
 
       if (!options || !options.all) criteria.updated = Infinity;
 
-      return c.removeAsync(criteria);
+      return c.deleteMany(criteria);
     },    
 
-    close: () => c.s.db.close()
+    close: () => c.s.db.s.client.close()
   };
 };

@@ -1,8 +1,5 @@
-const Promise = require('bluebird');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-
-Promise.promisifyAll(fs);
 
 module.exports = function(dir,prefix) {
   return {
@@ -12,7 +9,7 @@ module.exports = function(dir,prefix) {
         throw new Error('options `find` not supported in file adapter');
       
       try {
-        res = await fs.readFileAsync(path.join(dir,key+'.json'));
+        res = await fs.readFile(path.join(dir,key+'.json'));
       } catch(e) {
         return undefined;
       }
@@ -32,7 +29,7 @@ module.exports = function(dir,prefix) {
       d = JSON.stringify(d,null,2);
 
       try {
-        return await fs.writeFileAsync(path.join(dir,key+'.json'),d,{flag:'wx'});
+        return await fs.writeFile(path.join(dir,key+'.json'),d,{flag:'wx'});
       } catch(err) {
         if (err.code === 'EEXIST')
           throw new Error('KEY_EXISTS');
@@ -48,12 +45,12 @@ module.exports = function(dir,prefix) {
         d.base64 = true;
       }
       d = JSON.stringify(d,null,2);
-      return fs.writeFileAsync(path.join(dir,key+'.json'),d);
+      return fs.writeFile(path.join(dir,key+'.json'),d);
     },
 
     remove : async key => {
       try {
-        return await fs.unlinkAsync(path.join(dir,key+'.json'));
+        return await fs.unlink(path.join(dir,key+'.json'));
       } catch(e) {
         return e;
       }

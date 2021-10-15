@@ -24,7 +24,7 @@ module.exports = async function(collection) {
     insert : async (key,d) => {
       d._id = key;
       try {
-        await c.insert(d,{w: 1});
+        await c.insertOne(d,{w: 1});
       } catch(err) {
         if (err && err.message && err.message.indexOf('E11000') !== -1)
           throw new Error('KEY_EXISTS');
@@ -35,13 +35,13 @@ module.exports = async function(collection) {
 
     update : (key,d) => {
       d._id = key;
-      return c.update({_id:key},d,{upsert:true});
+      return c.updateOne({_id:key},{ $set: d },{upsert:true});
     },
 
     remove : async key => {
-      return await new Promise((resolve, reject) =>c.remove({_id:key}, (err,d) => err ? reject(err) : resolve(d)));
+      return await new Promise((resolve, reject) =>c.deleteOne({_id:key}, (err,d) => err ? reject(err) : resolve(d)));
     },
 
-    close: () => c.s.db.close()
+    close: () => c.s.db.s.client.close()
   };
 };

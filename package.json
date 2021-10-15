@@ -1,10 +1,10 @@
 {
   "name": "cache-stampede",
-  "version": "0.9.7",
+  "version": "0.10.0",
   "description": "General caching that protects against a cache-stampede",
   "main": "index.js",
   "scripts": {
-    "test": "docker-compose -p stampede up -d --no-recreate;docker exec -it stampede_runner_1 bash ./test.sh",
+    "test": "docker-compose -p stampede run runner bash ./test.sh; docker-compose -p stampede down",
     "testLocal": "bash ./test.sh"
   },
   "author": "Ziggy Jonsson <ziggy.jonsson.nyc@gmail.com> (https://github.com/zjonsson/)",
@@ -20,10 +20,10 @@
   "devDependencies": {
     "@google-cloud/datastore": "1.0.1",
     "aws-sdk": "^2.391.0",
-    "mongodb": "^2.2.11",
+    "minimist": "^1.2.0",
+    "mongodb": "^4.1.3",
     "mongoose": ">=5.7.5",
     "redis": "~2.6.2",
-    "tap": "^12.1.1",
-    "minimist": "^1.2.0"
+    "tap": "^15.0.10"
   }
 }

@@ -36,7 +36,8 @@ module.exports = async (t, cache) => t.test('With defined maxAge', async t => {
 
   t.test('after maxAge has passed', async t => {
     t.test('`cached` should re-run function', async t => {
-      await Promise.delay(500);
+      // Add small delay greater than expiry to account for any processing time
+      await Promise.delay(550);
       let d = await cache.cached('maxage-test', () => { return 'UPDATED_VALUE';},{maxAge:500});
       t.same(d, 'UPDATED_VALUE');
     });
