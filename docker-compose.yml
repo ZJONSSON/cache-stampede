@@ -1,12 +1,10 @@
 version: "3"
 
-# IMPORTANT
-# Make sure you run setup-docker.sh before executing this!!!
-#
-# Bump the client image version HERE when changing client/Dockerfile
+# Bump the client image version HERE when changing Dockerfile
 
 services:
   runner:
+    image: cache-stampede-runner:1
     build:
       context: .
       dockerfile: ./Dockerfile
