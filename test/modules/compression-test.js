@@ -28,7 +28,7 @@ module.exports = async (t, cache) => t.test('Compressed', async t => {
     data = JSON.parse(data);
     t.same(data, result);
     t.same(d.__caching__,false);
-    t.notEqual(d.data,result);
+    t.not(d.data,result);
   });
 
   t.test('`cached` should return decrypted cached result', async t => {

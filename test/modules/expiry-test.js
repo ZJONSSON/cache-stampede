@@ -39,7 +39,8 @@ module.exports = async (t, cache) => t.test('With defined expiry', async t => {
 
   t.test('after cache expired', async t => {
     t.test('`cached` should re-run function', async t => {
-      await Promise.delay(200);
+      // Add small delay greater than expiry to account for any processing time
+      await Promise.delay(300);
       let d = await cache.cached('expiry-test',function() { return 'UPDATED_VALUE';},{expiry:200});
       t.same(d, 'UPDATED_VALUE');
     });

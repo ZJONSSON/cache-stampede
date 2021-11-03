@@ -25,7 +25,7 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
     t.test('`adapter.get` returns encrypted data', async t => {
       let d = await adapter.get('encryptkey');      
       t.equal(d.__caching__,false);
-      t.notEqual(d,result);
+      t.not(d,result);
       t.equal(cache.decrypt(d.data,'testing123'),result);
     });
 
@@ -73,7 +73,7 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
     t.test('`adapter.get` returns encrypted data', async t => {
       let d = await adapter.get('encryptkey2');
       t.equal(d.__caching__,false);
-      t.notEqual(d,result);
+      t.not(d,result);
       t.equal(cache.decrypt(d.data,'newpassphrase'),result);
     });
 

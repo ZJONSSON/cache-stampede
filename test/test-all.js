@@ -1,9 +1,11 @@
 const fs = require('fs');
+const fsPromises = fs.promises;
 const path = require('path');
 const stampede = require('../index');
 const Promise = require('bluebird');
 const minimist = require('minimist');
 const fnExecute = require('./mongodb-fn-execute')
+const { MongoClient } = require('mongodb');
 
 // Require in all tests in the modules directory
 const tests = fs.readdirSync(path.join(__dirname,'modules'))
@@ -18,17 +20,13 @@ const tests = fs.readdirSync(path.join(__dirname,'modules'))
 var caches = {
 
   mongoHistory : async options => {
-    const mongodb = require('mongodb');
-    Promise.promisifyAll(mongodb.MongoClient);
-    const client = await mongodb.MongoClient.connectAsync('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-    return stampede.mongoHistory(client.collection('stampede_history_tests'), options);
+    const client = await new MongoClient('mongodb://mongodb:27017/stampede_tests').connect();
+    return stampede.mongoHistory(client.db().collection('stampede_history_tests'), options);
   },
 
   mongodb : async options => {
-    const mongodb = require('mongodb');
-    Promise.promisifyAll(mongodb.MongoClient);
-    const client = await mongodb.MongoClient.connect('mongodb://mongodb:27017/stampede_tests', {native_parser:true});
-    return stampede.mongodb(Promise.resolve(client.collection('stampede_tests_mongodb')), options);
+    const client = await new MongoClient('mongodb://mongodb:27017/stampede_tests').connect();
+    return stampede.mongodb(Promise.resolve(client.db().collection('stampede_tests_mongodb')), options);
   },
 
   mongoose : options => {
@@ -83,7 +81,17 @@ var caches = {
   },
   */
 
-  file : options => stampede.file(path.join(__dirname,'filecache'), options)
+  file : async (options) => {
+    let filecacheDir = path.join(__dirname,'filecache');
+    const dir = await fsPromises.opendir(filecacheDir);
+    for await (const dirent of dir) {
+      let n = dirent.name;
+      if (n === '.gitignore') continue;
+      await fsPromises.unlink(path.join(filecacheDir, n));
+      await Promise.delay(1000);
+    }
+    return stampede.file(filecacheDir, options);
+  }
 };
 
 

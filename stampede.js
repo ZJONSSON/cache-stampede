@@ -84,6 +84,10 @@ class Stampede {
   }
 
   async set(key,fn,options) {
+    if (key === undefined) {
+      throw new Error('Key cannot be undefined');
+    }
+
     if (!this._hasSetup) await this.setup();
     options = options || {};
 
