@@ -22,9 +22,9 @@ module.exports = async (t, createCacheCb) => t.test('Fn Execute', async t => {
   const adapter = await cache.adapter;
 
   await Promise.all([
-    adapter.remove('testkey',{all: true}),
-    adapter.remove('testkey2',{all: true}),
-    adapter.remove('testkey3',{all: true})
+    adapter.remove('testkey',null,{all: true}),
+    adapter.remove('testkey2',null,{all: true}),
+    adapter.remove('testkey3',null,{all: true})
   ]);
 
 

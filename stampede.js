@@ -55,8 +55,11 @@ class Stampede {
     const retryExpiry = (d.__caching__ && options.retryExpiry && !isNaN(options.retryExpiry) && (updated + (+options.retryExpiry)) < now);
 
     if (expired || aged || retryExpiry) {
-      d = undefined;
-      await this._adapter.remove(key);
+      if (!options.readOnly) {
+        await this._adapter.remove(key, d);
+      }
+
+      d = undefined;      
       keyNotFound();
     }
 
@@ -111,7 +114,7 @@ class Stampede {
         }
         // Otherwise we remove the key and throw directly
         else {
-          await this._adapter.remove(key);
+          await this._adapter.remove(key); // no need to pass the payload to what is being removed since it will never be actual data
           throw err;
         }
       }

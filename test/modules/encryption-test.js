@@ -11,8 +11,8 @@ module.exports = async (t, cache) => t.test('Encryption', async t => {
   const testFn = () => result;
 
   await Promise.all([
-    adapter.remove('encryptkey',{all: true}),
-    adapter.remove('encryptkey2',{all: true})
+    adapter.remove('encryptkey',null,{all: true}),
+    adapter.remove('encryptkey2',null,{all: true})
   ]);
 
   t.test('passphrase in object', async t => {

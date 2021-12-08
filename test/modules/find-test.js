@@ -7,8 +7,8 @@ module.exports = async (t, cache, name) => t.test('Find', async t => {
   const adapter = await cache.adapter;
   
   await Promise.all([
-    adapter.remove('find-test-1',{all: true}),
-    adapter.remove('find-test-2',{all: true})
+    adapter.remove('find-test-1',null,{all: true}),
+    adapter.remove('find-test-2',null,{all: true})
   ]);
 
   await cache.cached('find-test-1',{description: 'test record'},{info:{name:'TEST'}});

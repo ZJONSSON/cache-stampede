@@ -3,7 +3,7 @@ module.exports =  async (t, cache, name) => t.test('History', async t => {
 
   const adapter = await cache.adapter;
 
-  await adapter.remove('mongoHistory-test',{all: true});
+  await adapter.remove('mongoHistory-test',null,{all: true});
 
   t.test('separate calls with maxage 0 return separate results', async t => {
     let d = await cache.cached('mongoHistory-test',1,{maxAge:0});
