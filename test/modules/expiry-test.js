@@ -11,7 +11,7 @@ module.exports = async (t, cache) => t.test('With defined expiry', async t => {
   
   const testFn = () => result;
 
-  await adapter.remove('expiry-test',{all: true});
+  await adapter.remove('expiry-test',null,{all: true});
 
   t.test('on empty cache',async t => {
     t.test('`get` should error', async t => {

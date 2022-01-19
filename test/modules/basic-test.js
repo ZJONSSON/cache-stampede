@@ -10,9 +10,9 @@ module.exports = async (t, cache) => t.test('Basic test', async t => {
   const adapter = await cache.adapter;
 
   await Promise.all([
-    adapter.remove('testkey',{all: true}),
-    adapter.remove('rawkey',{all: true}),
-    adapter.remove('race', {all: true})
+    adapter.remove('testkey',null,{all: true}),
+    adapter.remove('rawkey',null,{all: true}),
+    adapter.remove('race', null,{all: true})
   ]);
 
   t.test('on empty cache', async t => {

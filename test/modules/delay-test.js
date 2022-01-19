@@ -10,9 +10,9 @@ module.exports = async (t, cache) => t.test('When fn is async', async t => {
   const adapter = await cache.adapter;
 
    await Promise.all([
-    adapter.remove('delay-testkey',{all: true}),
-    adapter.remove('delay-testkey2',{all: true}),
-    adapter.remove('delay-testkey3',{all: true})
+    adapter.remove('delay-testkey',null,{all: true}),
+    adapter.remove('delay-testkey2',null,{all: true}),
+    adapter.remove('delay-testkey3',null,{all: true})
   ]);
 
   let counter = 0;

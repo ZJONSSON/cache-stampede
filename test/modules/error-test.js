@@ -12,8 +12,8 @@ module.exports = async (t, cache) => t.test('Function with non-caching error', a
   };
 
   await Promise.all([
-    adapter.remove('error-testkey',{all: true}),
-    adapter.remove('error-testkey2',{all: true})
+    adapter.remove('error-testkey',null,{all: true}),
+    adapter.remove('error-testkey2',null,{all: true})
   ]);
 
   t.test('`set` should fail when db is still __caching__', async t =>{

@@ -13,8 +13,8 @@ module.exports = async (t, cache) => t.test('Compressed', async t => {
   const testFn =() => result; 
 
   await Promise.all([
-    adapter.remove('compresskey1',{all: true}),
-    adapter.remove('compresskey2',{all: true})
+    adapter.remove('compresskey1',null,{all: true}),
+    adapter.remove('compresskey2',null,{all: true})
   ]);
 
   t.test('first `cached` should return output', async t => {

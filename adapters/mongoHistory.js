@@ -63,7 +63,7 @@ module.exports = async function(collection) {
       }, d);
     },
 
-    remove : function(key,options) {
+    remove : function(key, previousData, options) {
       const criteria = {
         key: key
       };

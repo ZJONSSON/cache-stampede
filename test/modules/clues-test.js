@@ -10,11 +10,11 @@ module.exports = async (t, cache) => t.test('Clues formula', async t => {
   const adapter = await cache.adapter;
 
   await Promise.all([
-    adapter.remove('clues-testkey',{all: true}),
-    adapter.remove('clues-testkey2',{all: true}),
-    adapter.remove('clues-testkey3',{all: true}),
-    adapter.remove('clues-testkey4',{all: true}),
-    adapter.remove('clues-testkey5',{all: true})
+    adapter.remove('clues-testkey',null,{all: true}),
+    adapter.remove('clues-testkey2',null,{all: true}),
+    adapter.remove('clues-testkey3',null,{all: true}),
+    adapter.remove('clues-testkey4',null,{all: true}),
+    adapter.remove('clues-testkey5',null,{all: true})
   ]);
 
   /*t.test('regular formula returns value', async t => {

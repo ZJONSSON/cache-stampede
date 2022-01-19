@@ -12,7 +12,7 @@ module.exports = async (t, cache) => t.test('Error with `cache` as true', async 
     throw {message:'Error',cache:true};
   };
   
-  await adapter.remove('errorcache-testkey',{all: true});
+  await adapter.remove('errorcache-testkey',null,{all: true});
 
   t.test('should return as rejected promise',async t => {
     let e = await cache.cached('errorcache-testkey',testFn).then(d => t.fail(`Should error '${d}`), Object);
