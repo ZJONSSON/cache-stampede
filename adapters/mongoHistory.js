@@ -73,6 +73,6 @@ module.exports = async function(collection) {
       return c.deleteMany(criteria);
     },    
 
-    close: () => c.s.db.s.client.close()
+    close: () => c.client.close()
   };
 };

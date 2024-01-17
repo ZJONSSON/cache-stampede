@@ -39,9 +39,9 @@ module.exports = async function(collection) {
     },
 
     remove : async key => {
-      return await new Promise((resolve, reject) =>c.deleteOne({_id:key}, (err,d) => err ? reject(err) : resolve(d)));
+      return await c.deleteOne({_id:key});
     },
 
-    close: () => c.s.db.s.client.close()
+    close: () => c.client.close()
   };
 };
