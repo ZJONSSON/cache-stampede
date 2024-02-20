@@ -105,8 +105,8 @@ class Stampede {
 
     await (options.upsert ? this._adapter.update(key,payload,expiry) : this._adapter.insert(key,payload,expiry));
 
-    const finalize = async(err, d) => {
-      if (err) {
+    const finalize = async (err, d) => {
+      if (err !== null && err !== undefined) {
         if (typeof err === 'string') err = {message:err};
         // If the error is to be cached we transform into a JSON object
         if (err && err.cache) {
