@@ -1,5 +1,3 @@
-const Promise = require('bluebird');
-
 module.exports = async function(collection) {
   const c = await collection;
 
@@ -42,6 +40,13 @@ module.exports = async function(collection) {
       return await c.deleteOne({_id:key});
     },
 
-    close: () => c.client.close()
+    close: () => {
+      if (c.client) { // Mongo 5+
+        c.client.close();
+      } else if (c.s) { // Mongo 4
+        c.s.db.s.client.close();
+      }
+    }
+
   };
 };
