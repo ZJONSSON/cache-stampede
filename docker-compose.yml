@@ -1,4 +1,4 @@
-version: "3"
+version: "4"
 
 # Bump the client image version HERE when changing Dockerfile
 
@@ -23,7 +23,7 @@ services:
     command: sh -c 'tail -f /dev/null'
 
   mongodb:
-    image: 'mongo:4.0'
+    image: 'mongo:6.0'
 
   redis:
     image: redis

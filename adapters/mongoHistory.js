@@ -73,6 +73,12 @@ module.exports = async function(collection) {
       return c.deleteMany(criteria);
     },    
 
-    close: () => c.s.db.s.client.close()
+    close: () => {
+      if (c.client) { // Mongo 5+
+        c.client.close();
+      } else if (c.s) { // Mongo 4
+        c.s.db.s.client.close();
+      }
+    }
   };
 };
